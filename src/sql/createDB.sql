@@ -80,5 +80,4 @@ CREATE TABLE IF NOT EXISTS user_plays_game (
   playerIndex INT NOT NULL,
   UNIQUE(game, userID)
 );
-SELECT 'Hallo welt';
 COMMIT;
