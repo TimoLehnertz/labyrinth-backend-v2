@@ -185,21 +185,21 @@ describe('friends.service', () => {
     await friendsService.addFriendRequest(max.id, tom.id);
     let requests = await friendsService.findReceivedRequests(tom.id);
     expect(requests.length).toBe(1);
-    await friendsService.removeFriendShipRequest(max.id, tom.id);
+    await friendsService.deleteFriendShipRequest(max.id, tom.id);
     requests = await friendsService.findReceivedRequests(max.id);
     expect(requests.length).toBe(0);
 
     await friendsService.addFriendRequest(max.id, tom.id);
     requests = await friendsService.findReceivedRequests(tom.id);
     expect(requests.length).toBe(1);
-    await friendsService.removeFriendShipRequest(tom.id, max.id); // other way around
+    await friendsService.deleteFriendShipRequest(tom.id, max.id); // other way around
     requests = await friendsService.findReceivedRequests(max.id);
     expect(requests.length).toBe(0);
   });
 
   it('removeFriendShipRequest does not exist', async () => {
     try {
-      await friendsService.removeFriendShipRequest(max.id, tom.id);
+      await friendsService.deleteFriendShipRequest(max.id, tom.id);
       fail('expected exception');
     } catch (e) {
       expect(e.message).toBe('request does not exist');

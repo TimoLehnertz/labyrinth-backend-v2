@@ -39,6 +39,11 @@ export async function setupTestDataSource(): Promise<{
   for (let i = 0; i < queries.length; i++) {
     await dataSource.query(queries[i]);
   }
+  // await dataSource.manager.query('DELETE FROM users;');
+  // const usersRaw = await dataSource.manager.query('SELECT * from users;');
+  // console.log('raw:', usersRaw);
+  // const users = await dataSource.manager.find(User);
+  // console.log(users);
 
   return { forRoot, dataSource };
 }

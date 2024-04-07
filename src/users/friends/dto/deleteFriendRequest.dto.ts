@@ -1,6 +1,6 @@
 import { IsUUID } from 'class-validator';
 
-export class FriendRequestDto {
+export class DeleteFriendRequestDto {
   @IsUUID()
   user: string;
 }

@@ -9,9 +9,8 @@ import {
   Get,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { SigninDto, signinSchema } from '../users/dto/signin.dto';
+import { SignInDto } from '../users/dto/signIn.dto';
 import { AuthGuard } from './auth.guard';
-import { ZodPipe } from '../pipes/ZodPipe';
 
 @Controller('auth')
 export class AuthController {
@@ -19,7 +18,7 @@ export class AuthController {
 
   @HttpCode(HttpStatus.OK)
   @Post('login')
-  signIn(@Body(new ZodPipe(signinSchema)) signInDto: SigninDto) {
+  signIn(@Body() signInDto: SignInDto) {
     return this.authService.signIn(
       signInDto.usernamePassword,
       signInDto.password,

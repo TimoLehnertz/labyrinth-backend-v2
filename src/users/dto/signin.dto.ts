@@ -1,10 +1,13 @@
-import { z } from 'zod';
+import { IsString, MaxLength, MinLength } from 'class-validator';
 
-export const signinSchema = z
-  .object({
-    usernamePassword: z.string().min(2).max(320),
-    password: z.string().max(200).min(8),
-  })
-  .required();
+export class SignInDto {
+  @IsString()
+  @MinLength(2)
+  @MaxLength(320)
+  usernamePassword: string;
 
-export type SigninDto = z.infer<typeof signinSchema>;
+  @IsString()
+  @MinLength(8)
+  @MaxLength(200)
+  password: string;
+}

@@ -91,7 +91,7 @@ export class FriendsService {
     await this.friendsRepository.remove(friendShip);
   }
 
-  async removeFriendShipRequest(userA: string, userB: string) {
+  async deleteFriendShipRequest(userA: string, userB: string) {
     const friendRequest = await this.findFriendshipRequest(userA, userB);
     if (friendRequest === null) {
       throw new BadRequestException('request does not exist');

@@ -1,3 +1,10 @@
+import {
+  IsEmail,
+  IsString,
+  Matches,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 import { z } from 'zod';
 
 export const registerSchema = z
@@ -14,4 +21,20 @@ export const registerSchema = z
   })
   .required();
 
-export type RegisterDto = z.infer<typeof registerSchema>;
+export class RegisterDto {
+  @IsString()
+  @MinLength(2)
+  @MaxLength(20)
+  @Matches(/^[^@]*$/)
+  username: string;
+
+  @IsString()
+  @IsEmail()
+  @MaxLength(320)
+  email: string;
+
+  @IsString()
+  @MaxLength(200)
+  @MinLength(8)
+  password: string;
+}

@@ -1,4 +1,4 @@
-import { JwtService } from '@nestjs/jwt';
+import { JwtModule } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from '../users/users.service';
@@ -16,8 +16,12 @@ describe('AuthService', () => {
     const { forRoot, dataSource } = await setupTestDataSource();
     _dataSource = dataSource;
     const module: TestingModule = await Test.createTestingModule({
-      providers: [AuthService, UsersService, JwtService],
-      imports: [forRoot, TypeOrmModule.forFeature([User])],
+      providers: [AuthService, UsersService],
+      imports: [
+        forRoot,
+        TypeOrmModule.forFeature([User]),
+        JwtModule.register({ secretOrPrivateKey: 'secret' }),
+      ],
     })
       .overrideProvider(DataSource)
       .useValue(dataSource)
@@ -55,8 +59,6 @@ describe('AuthService', () => {
   });
 
   it('should sign in', async () => {
-    const users = await usersService.findMany();
-    console.log(users.length);
     await usersService.register({
       email: 'max@muster.com',
       password: '12345678',
@@ -64,6 +66,5 @@ describe('AuthService', () => {
     });
     const token = await authService.signIn('max', '12345678');
     expect(token).toBeDefined();
-    console.log('defined');
   });
 });
