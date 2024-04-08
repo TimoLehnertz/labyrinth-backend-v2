@@ -5,6 +5,21 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { FriendRequest } from './entities/friendRequest.entity';
 import { UsersService } from '../users.service';
 
+export enum AddFriendError {
+  sameUser = 'same user',
+  invalidUser = 'invalid user',
+  alreadyFriends = 'already friends',
+  alreadySent = 'already sent',
+}
+
+export enum DeleteFriendShipRequestError {
+  requestDoesNotExist = 'request does not exist',
+}
+
+export enum DeleteFriendError {
+  friendDoesNotExist = 'friendship does not exist',
+}
+
 @Injectable()
 export class FriendsService {
   constructor(
@@ -15,28 +30,28 @@ export class FriendsService {
     private usersService: UsersService,
   ) {}
 
-  async addFriendRequest(initiator: string, requested: string) {
+  public async addFriendRequest(initiator: string, requested: string) {
     if (initiator === requested) {
-      throw new BadRequestException('same user');
+      throw new BadRequestException(AddFriendError.sameUser);
     }
     const initiatorUser = await this.usersService.findById(initiator);
     if (initiatorUser === null) {
-      throw new BadRequestException('invalid user');
+      throw new BadRequestException(AddFriendError.invalidUser);
     }
     const requestedUser = await this.usersService.findById(requested);
     if (requestedUser === null) {
-      throw new BadRequestException('invalid user');
+      throw new BadRequestException(AddFriendError.invalidUser);
     }
     const friendShip = await this.findFriendship(initiator, requested);
     if (friendShip !== null) {
-      throw new BadRequestException('already friends');
+      throw new BadRequestException(AddFriendError.alreadyFriends);
     }
     const ownRequest = await this.findSpecificFriendshipRequest(
       initiator,
       requested,
     );
     if (ownRequest) {
-      throw new BadRequestException('already sent'); // Request has already been added
+      throw new BadRequestException(AddFriendError.alreadySent);
     }
     const receivedRequest = await this.findSpecificFriendshipRequest(
       requested,
@@ -54,7 +69,7 @@ export class FriendsService {
     await this.friendRequestRepository.insert(friendRequest);
   }
 
-  findFriends(userID: string): Promise<Friendship[]> {
+  public findFriends(userID: string): Promise<Friendship[]> {
     return this.friendsRepository.find({
       where: [
         {
@@ -67,7 +82,7 @@ export class FriendsService {
     });
   }
 
-  findSendRequests(userID: string): Promise<FriendRequest[]> {
+  public findSendRequests(userID: string): Promise<FriendRequest[]> {
     return this.friendRequestRepository.find({
       where: {
         initiator: userID,
@@ -75,7 +90,7 @@ export class FriendsService {
     });
   }
 
-  findReceivedRequests(userID: string): Promise<FriendRequest[]> {
+  public findReceivedRequests(userID: string): Promise<FriendRequest[]> {
     return this.friendRequestRepository.find({
       where: {
         requested: userID,
@@ -83,18 +98,20 @@ export class FriendsService {
     });
   }
 
-  async removeFriendShip(userA: string, userB: string) {
+  public async deleteFriend(userA: string, userB: string) {
     const friendShip = await this.findFriendship(userA, userB);
     if (friendShip === null) {
-      throw new BadRequestException('friendship does not exist');
+      throw new BadRequestException(DeleteFriendError.friendDoesNotExist);
     }
     await this.friendsRepository.remove(friendShip);
   }
 
-  async deleteFriendShipRequest(userA: string, userB: string) {
+  public async deleteFriendShipRequest(userA: string, userB: string) {
     const friendRequest = await this.findFriendshipRequest(userA, userB);
     if (friendRequest === null) {
-      throw new BadRequestException('request does not exist');
+      throw new BadRequestException(
+        DeleteFriendShipRequestError.requestDoesNotExist,
+      );
     }
     await this.friendRequestRepository.remove(friendRequest);
   }

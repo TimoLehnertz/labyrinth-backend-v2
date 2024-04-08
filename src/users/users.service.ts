@@ -3,7 +3,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { RegisterDto } from '../auth/dto/register.dto';
+import { RegisterDto } from './dto/register.dto';
+
+export enum RegisterError {
+  emailTaken = 'email taken',
+  usernameTaken = 'username taken',
+}
 
 @Injectable()
 export class UsersService {
@@ -52,10 +57,10 @@ export class UsersService {
 
   async register(registerUserDto: RegisterDto) {
     if (await this.emailExists(registerUserDto.email)) {
-      throw new BadRequestException('email-taken');
+      throw new BadRequestException(RegisterError.emailTaken);
     }
     if (await this.usernameExists(registerUserDto.username)) {
-      throw new BadRequestException('username-taken');
+      throw new BadRequestException(RegisterError.usernameTaken);
     }
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(

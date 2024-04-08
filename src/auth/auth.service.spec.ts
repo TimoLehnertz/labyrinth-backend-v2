@@ -37,7 +37,7 @@ describe('AuthService', () => {
 
   it("should fail because user doesn't exist", async () => {
     try {
-      await authService.signIn('max', '12345678');
+      await authService.login('max', '12345678');
       fail('expected login to fail');
     } catch (e) {
       expect(e.message).toBe('Unauthorized');
@@ -51,7 +51,7 @@ describe('AuthService', () => {
       username: 'max',
     });
     try {
-      await authService.signIn('max', '12345678!');
+      await authService.login('max', '12345678!');
       fail('expected login to fail');
     } catch (e) {
       expect(e.message).toBe('Unauthorized');
@@ -64,7 +64,7 @@ describe('AuthService', () => {
       password: '12345678',
       username: 'max',
     });
-    const token = await authService.signIn('max', '12345678');
+    const token = await authService.login('max', '12345678');
     expect(token).toBeDefined();
   });
 });

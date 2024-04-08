@@ -159,7 +159,7 @@ describe('friends.service', () => {
     await friendsService.addFriendRequest(tom.id, max.id);
     let friends = await friendsService.findFriends(max.id);
     expect(friends.length).toBe(1);
-    await friendsService.removeFriendShip(max.id, tom.id);
+    await friendsService.deleteFriend(max.id, tom.id);
     friends = await friendsService.findFriends(max.id);
     expect(friends.length).toBe(0);
 
@@ -167,14 +167,14 @@ describe('friends.service', () => {
     await friendsService.addFriendRequest(tom.id, max.id);
     friends = await friendsService.findFriends(max.id);
     expect(friends.length).toBe(1);
-    await friendsService.removeFriendShip(tom.id, max.id); // other way around
+    await friendsService.deleteFriend(tom.id, max.id); // other way around
     friends = await friendsService.findFriends(max.id);
     expect(friends.length).toBe(0);
   });
 
   it('friendship does not exist', async () => {
     try {
-      await friendsService.removeFriendShip(max.id, tom.id);
+      await friendsService.deleteFriend(max.id, tom.id);
       fail('expected exception');
     } catch (e) {
       expect(e.message).toBe('friendship does not exist');

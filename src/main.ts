@@ -3,7 +3,6 @@ import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { patchNestJsSwagger } from 'nestjs-zod';
-import metadata from 'metadata';
 import { ValidationPipe } from '@nestjs/common';
 
 export interface EnvironmentVariables {
@@ -12,7 +11,10 @@ export interface EnvironmentVariables {
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-
+  app.enableCors({
+    origin: ['http://localhost:3001', 'http://localhost:3000'],
+    // allowedHeaders: 'localhost:3000',
+  });
   app.useGlobalPipes(new ValidationPipe());
 
   patchNestJsSwagger();
@@ -22,8 +24,9 @@ async function bootstrap() {
     .setDescription('The Labyrinth API description')
     .setVersion('1.0')
     .addTag('labyrinth')
+    .addBearerAuth()
     .build();
-  await SwaggerModule.loadPluginMetadata(metadata);
+  // await SwaggerModule.loadPluginMetadata(metadata);
   const document = SwaggerModule.createDocument(app, documentBuilder);
   SwaggerModule.setup('api', app, document);
 

@@ -26,6 +26,7 @@ import { FriendRequest } from './users/friends/entities/friendRequest.entity';
           password: configService.get<string>('DATABASE_PASSWORD'),
           database: configService.get<string>('DATABASE_SCHEMA'),
           entities: [User, Friendship, FriendRequest],
+          retryAttempts: 2,
           // synchronize: true, ??
         };
       },
