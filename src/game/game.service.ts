@@ -5,7 +5,7 @@ import {
   Game as LabyrinthGame,
   Move,
   ShiftPosition,
-} from 'labyrinth-game-logic/dist/index.cjs';
+} from 'labyrinth-game-logic';
 import { Game, GameVisibility } from './entities/game.entity';
 import { Not, Repository } from 'typeorm';
 import { BotType, UserPlaysGame } from './entities/UserPlaysGame.entity';

@@ -12,7 +12,7 @@ import {
   generateMoves,
   generateShiftPositions,
   Game as LabyrinthGame,
-} from 'labyrinth-game-logic/dist/index.cjs';
+} from 'labyrinth-game-logic';
 import { Friendship } from 'users/friends/entities/friendship.entity';
 import { FriendRequest } from 'users/friends/entities/friendRequest.entity';
 import { MoveDto } from './dto/move.dto';

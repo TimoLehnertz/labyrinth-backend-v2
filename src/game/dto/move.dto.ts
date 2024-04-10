@@ -1,9 +1,5 @@
 import { IsEnum, IsNumber, ValidateNested } from 'class-validator';
-import {
-  Heading,
-  Move,
-  ShiftPosition,
-} from 'labyrinth-game-logic/dist/index.cjs';
+import { Heading, Move, ShiftPosition } from 'labyrinth-game-logic';
 
 export class BoardPositionDto {
   @IsNumber()
