@@ -8,6 +8,7 @@ import { UsersService } from '../users.service';
 import { User } from '../entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import { FriendRequestSubscriber } from './friendRequest.subscriber';
+import { FriendshipSubscriber } from './friendship.subscriber';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Friendship, FriendRequest, User])],
@@ -17,6 +18,7 @@ import { FriendRequestSubscriber } from './friendRequest.subscriber';
     JwtService,
     FriendsController,
     FriendRequestSubscriber,
+    FriendshipSubscriber,
   ],
   controllers: [FriendsController],
   exports: [FriendsService],

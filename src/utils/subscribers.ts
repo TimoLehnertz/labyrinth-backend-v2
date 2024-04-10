@@ -11,8 +11,8 @@ export type EntityOperation = 'insert' | 'remove';
 
 export interface WsSubscriberOptions<T> {
   operations?: EntityOperation[];
-  filter?: (data: T, operation: EntityOperation) => boolean;
-  pipe?: (data: T, operation: EntityOperation) => any;
+  filter?: (data: T, operation: EntityOperation) => boolean | Promise<boolean>;
+  pipe?: (data: T, operation: EntityOperation) => any | Promise<any>;
 }
 
 class Client<T> {
@@ -28,23 +28,34 @@ class Client<T> {
     return this.options.operations.includes(operation);
   }
 
-  private canPass(entity: T, operation: EntityOperation): boolean {
-    return this.options.filter?.(entity, operation) ?? true;
+  private async canPass(
+    entity: T,
+    operation: EntityOperation,
+  ): Promise<boolean> {
+    const res = this.options.filter?.(entity, operation) ?? true;
+    if (res instanceof Promise) {
+      return await res;
+    }
+    return res;
   }
 
-  private process(entity: T, operation: EntityOperation): any {
-    return this.options.pipe?.(entity, operation) ?? entity;
+  private async process(entity: T, operation: EntityOperation): Promise<any> {
+    const res = this.options.pipe?.(entity, operation) ?? entity;
+    if (res instanceof Promise) {
+      return await res;
+    }
+    return res;
   }
 
-  afterInsert(insertEvent: InsertEvent<T>) {
+  async afterInsert(insertEvent: InsertEvent<T>) {
     if (!this.operationIncluded('insert')) {
       return;
     }
-    if (!this.canPass(insertEvent.entity, 'insert')) {
+    if (!(await this.canPass(insertEvent.entity, 'insert'))) {
       return;
     }
     console.log('emit insert');
-    this.socket.emit('add', this.process(insertEvent.entity, 'insert'));
+    this.socket.emit('add', await this.process(insertEvent.entity, 'insert'));
   }
 
   //   afterUpdate(updateEvent: UpdateEvent<T>) {
@@ -57,15 +68,21 @@ class Client<T> {
   //     this.socket.emit('update', updateEvent.entity);
   //   }
 
-  afterRemove(insertEvent: RemoveEvent<T>) {
+  async afterRemove(insertEvent: RemoveEvent<T>) {
     if (!this.operationIncluded('remove')) {
       return;
     }
-    if (!insertEvent.entity || !this.canPass(insertEvent.entity, 'remove')) {
+    if (
+      !insertEvent.entity ||
+      !(await this.canPass(insertEvent.entity, 'remove'))
+    ) {
       return;
     }
     console.log('emit remove', insertEvent.entity);
-    this.socket.emit('remove', this.process(insertEvent.entity, 'remove'));
+    this.socket.emit(
+      'remove',
+      await this.process(insertEvent.entity, 'remove'),
+    );
   }
 }
 

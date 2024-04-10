@@ -7,7 +7,6 @@ import {
   UseGuards,
   Request,
   Get,
-  Res,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthGuard } from './auth.guard';
@@ -18,7 +17,7 @@ import {
   ApiProperty,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { Response } from 'express';
+// import { Response } from 'express';
 class LoginResponse {
   @ApiProperty()
   access_token: string;
@@ -34,15 +33,15 @@ export class AuthController {
   @ApiOkResponse({ type: LoginResponse })
   async login(
     @Body() signInDto: SignInDto,
-    @Res({ passthrough: true }) response: Response,
+    // @Res({ passthrough: true }) response: Response,
   ) {
     const token = await this.authService.login(
       signInDto.usernameEmail,
       signInDto.password,
     );
-    response.cookie('jwt', token.access_token, {
-      httpOnly: true,
-    });
+    // response.cookie('jwt', token.access_token, {
+    //   httpOnly: true,
+    // });
     return token;
   }
 

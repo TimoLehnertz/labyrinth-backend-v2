@@ -20,6 +20,10 @@ export enum DeleteFriendError {
   friendDoesNotExist = 'friendship does not exist',
 }
 
+export enum IgnoreFriendRequestError {
+  friendDoesNotExist = 'request not exist',
+}
+
 @Injectable()
 export class FriendsService {
   constructor(
@@ -73,12 +77,16 @@ export class FriendsService {
     return this.friendsRepository.find({
       where: [
         {
-          userA: userID,
+          usera: userID,
         },
         {
-          userB: userID,
+          userb: userID,
         },
       ],
+      relations: {
+        useraUser: true,
+        userbUser: true,
+      },
     });
   }
 
@@ -87,28 +95,103 @@ export class FriendsService {
       where: {
         initiator: userID,
       },
+      relations: {
+        initiatorUser: true,
+        requestedUser: true,
+      },
     });
+  }
+
+  public async upgradeFriendship(friendship: Friendship): Promise<Friendship> {
+    const fullFriendship = await this.friendsRepository.findOne({
+      where: {
+        id: friendship.id,
+      },
+      relations: {
+        useraUser: true,
+        userbUser: true,
+      },
+    });
+    if (fullFriendship === null) {
+      return friendship;
+    }
+    return fullFriendship;
+  }
+
+  public async upgradeFriendRequest(
+    friendRequest: FriendRequest,
+  ): Promise<FriendRequest> {
+    const fullFriendRequest = await this.friendRequestRepository.findOne({
+      where: {
+        id: friendRequest.id,
+      },
+      relations: {
+        initiatorUser: true,
+        requestedUser: true,
+      },
+    });
+    if (fullFriendRequest === null) {
+      return friendRequest;
+    }
+    return fullFriendRequest;
+  }
+
+  public async ignoreFriendRequest(id: string): Promise<void> {
+    const friendRequest = await this.friendRequestRepository.findOne({
+      where: { id },
+    });
+    if (friendRequest === null) {
+      throw new BadRequestException(
+        IgnoreFriendRequestError.friendDoesNotExist,
+      );
+    }
+    friendRequest.ignored = true;
+    await this.friendRequestRepository.update(friendRequest.id, friendRequest);
   }
 
   public findReceivedRequests(userID: string): Promise<FriendRequest[]> {
     return this.friendRequestRepository.find({
       where: {
         requested: userID,
+        ignored: false,
+      },
+      relations: {
+        requestedUser: true,
+        initiatorUser: true,
       },
     });
   }
 
-  public async deleteFriend(userA: string, userB: string) {
-    const friendShip = await this.findFriendship(userA, userB);
+  public async deleteFriendship(userID: string, id: string) {
+    const friendShip = await this.friendsRepository.findOne({
+      where: [
+        {
+          id,
+          usera: userID,
+        },
+        {
+          id,
+          userb: userID,
+        },
+      ],
+    });
     if (friendShip === null) {
       throw new BadRequestException(DeleteFriendError.friendDoesNotExist);
     }
     await this.friendsRepository.remove(friendShip);
   }
 
-  public async deleteFriendShipRequest(userA: string, userB: string) {
-    const friendRequest = await this.findFriendshipRequest(userA, userB);
+  public async deleteFriendShipRequest(userID: string, requestID: string) {
+    const friendRequest = await this.findFriendshipRequest(requestID);
     if (friendRequest === null) {
+      throw new BadRequestException(
+        DeleteFriendShipRequestError.requestDoesNotExist,
+      );
+    }
+    if (
+      friendRequest.initiator !== userID &&
+      friendRequest.requested !== userID
+    ) {
       throw new BadRequestException(
         DeleteFriendShipRequestError.requestDoesNotExist,
       );
@@ -117,20 +200,24 @@ export class FriendsService {
   }
 
   private findFriendship(
-    userA: string,
-    userB: string,
+    usera: string,
+    userb: string,
   ): Promise<Friendship | null> {
     return this.friendsRepository.findOne({
       where: [
         {
-          userA: userA,
-          userB: userB,
+          usera,
+          userb,
         },
         {
-          userB: userA,
-          userA: userB,
+          userb: usera,
+          usera: userb,
         },
       ],
+      relations: {
+        useraUser: true,
+        userbUser: true,
+      },
     });
   }
 
@@ -143,31 +230,31 @@ export class FriendsService {
         initiator,
         requested,
       },
+      relations: {
+        initiatorUser: true,
+        requestedUser: true,
+      },
     });
   }
 
-  private findFriendshipRequest(
-    initiator: string,
-    requested: string,
-  ): Promise<FriendRequest | null> {
+  private findFriendshipRequest(id: string): Promise<FriendRequest | null> {
     return this.friendRequestRepository.findOne({
       where: [
         {
-          initiator,
-          requested,
-        },
-        {
-          initiator: requested,
-          requested: initiator,
+          id,
         },
       ],
+      relations: {
+        initiatorUser: true,
+        requestedUser: true,
+      },
     });
   }
 
   private async acceptRequest(friendRequest: FriendRequest) {
     const friendship = this.friendsRepository.create({
-      userA: friendRequest.initiator,
-      userB: friendRequest.requested,
+      usera: friendRequest.initiator,
+      userb: friendRequest.requested,
       since: new Date(),
     });
     await this.friendRequestRepository.remove(friendRequest);

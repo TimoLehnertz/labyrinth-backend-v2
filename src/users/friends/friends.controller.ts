@@ -7,12 +7,15 @@ import {
   Delete,
   ParseUUIDPipe,
   Query,
+  BadRequestException,
+  Put,
 } from '@nestjs/common';
 import {
   AddFriendError,
   DeleteFriendError,
   DeleteFriendShipRequestError,
   FriendsService,
+  IgnoreFriendRequestError,
 } from './friends.service';
 import { AuthGuard } from '../../auth/auth.guard';
 import {
@@ -27,12 +30,16 @@ import {
   MessageBody,
   SubscribeMessage,
   WebSocketGateway,
-  WebSocketServer,
+  WsException,
 } from '@nestjs/websockets';
-import { Server, Socket } from 'socket.io';
+import { Socket } from 'socket.io';
 import { WsAuthGuard } from 'auth/ws-auth.guard';
 import { FriendRequestSubscriber } from './friendRequest.subscriber';
 import { FriendRequest } from './entities/friendRequest.entity';
+import { FriendshipSubscriber } from './friendship.subscriber';
+import { Friendship } from './entities/friendship.entity';
+import { AsyncApiPub } from 'nestjs-asyncapi';
+import { UsersService } from 'users/users.service';
 class AddFriendRequestErrorResponse {
   @ApiProperty({ enum: AddFriendError })
   message: AddFriendError;
@@ -48,32 +55,113 @@ class DeleteFriendRequestErrorResponse {
   message: DeleteFriendShipRequestError;
 }
 
+class IgnoreFriendRequestErrorResponse {
+  @ApiProperty({ enum: IgnoreFriendRequestError })
+  message: IgnoreFriendRequestError;
+}
+
 @Controller('friends')
 @WebSocketGateway({
   namespace: 'friends',
+  cors: {
+    origin: 'http://localhost:3000',
+    credentials: true,
+  },
 })
 export class FriendsController {
-  @WebSocketServer()
-  sever: Server;
-
   constructor(
     private friendsService: FriendsService,
+    private usersService: UsersService,
     private friendRequestSubscriber: FriendRequestSubscriber,
+    private friendshipSubscriber: FriendshipSubscriber,
   ) {}
 
-  @SubscribeMessage('requests')
+  @SubscribeMessage('received-requests')
   @UseGuards(WsAuthGuard)
-  handleEvent(@MessageBody() data: string, @ConnectedSocket() client: Socket) {
-    this.friendRequestSubscriber.manageClient(client, {
-      pipe: (friendRequest: FriendRequest) =>
-        friendRequest.requested === (client as any).user.id,
-    });
+  @AsyncApiPub({
+    channel: 'friends/received-requests',
+    message: [
+      {
+        name: 'add',
+        payload: FriendRequest,
+      },
+      {
+        name: 'remove',
+        payload: FriendRequest,
+      },
+      {
+        name: 'init',
+        payload: Array<FriendRequest>,
+      },
+    ],
+  })
+  public async handleReceivedRequests(
+    @MessageBody() data: string,
+    @ConnectedSocket() client: Socket,
+  ) {
+    try {
+      this.friendRequestSubscriber.manageClient(client, {
+        filter: (friendRequest: FriendRequest) =>
+          friendRequest.requested === (client as any).user.id,
+        operations: ['insert', 'remove'],
+        pipe: (data) => this.friendsService.upgradeFriendRequest(data),
+      });
+      client.emit(
+        'init',
+        await this.friendsService.findReceivedRequests((client as any).user.id),
+      );
+    } catch (e) {
+      throw new WsException(e.message ?? 'An error occurred');
+    }
+  }
+
+  @SubscribeMessage('sent-requests')
+  @UseGuards(WsAuthGuard)
+  public async handleSentRequests(
+    @MessageBody() data: string,
+    @ConnectedSocket() client: Socket,
+  ) {
+    try {
+      this.friendRequestSubscriber.manageClient(client, {
+        filter: (friendRequest: FriendRequest) =>
+          friendRequest.initiator === (client as any).user.id,
+        pipe: (data) => this.friendsService.upgradeFriendRequest(data),
+      });
+      client.emit(
+        'init',
+        await this.friendsService.findSendRequests((client as any).user.id),
+      );
+    } catch (e) {
+      throw new WsException(e.message ?? 'An error occurred');
+    }
+  }
+
+  @SubscribeMessage('friends')
+  @UseGuards(WsAuthGuard)
+  public async handleFriends(
+    @MessageBody() data: string,
+    @ConnectedSocket() client: Socket,
+  ) {
+    try {
+      this.friendshipSubscriber.manageClient(client, {
+        filter: (friendRequest: Friendship) =>
+          friendRequest.usera === (client as any).user.id ||
+          friendRequest.userb === (client as any).user.id,
+        pipe: (data) => this.friendsService.upgradeFriendship(data),
+      });
+      client.emit(
+        'init',
+        await this.friendsService.findFriends((client as any).user.id),
+      );
+    } catch (e) {
+      throw new WsException(e.message ?? 'An error occurred');
+    }
   }
 
   @Get()
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
-  async getFriends(@Req() request: any) {
+  public async getFriends(@Req() request: any) {
     return await this.friendsService.findFriends(request.user.id);
   }
 
@@ -81,24 +169,24 @@ export class FriendsController {
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
   @ApiBadRequestResponse({ type: DeleteFriendErrorResponse })
-  async deleteFriend(
+  public async deleteFriend(
     @Req() request: any,
-    @Query('user', ParseUUIDPipe) user: string,
+    @Query('friendshipID', ParseUUIDPipe) friendshipID: string,
   ) {
-    await this.friendsService.deleteFriend(request.user.id, user);
+    await this.friendsService.deleteFriendship(request.user.id, friendshipID);
   }
 
   @Get('send-requests')
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
-  async getSendFriendRequests(@Req() request: any) {
+  public async getSendFriendRequests(@Req() request: any) {
     return await this.friendsService.findSendRequests(request.user.id);
   }
 
   @Get('received-requests')
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
-  async getFriendRequests(@Req() request: any) {
+  public async getFriendRequests(@Req() request: any) {
     return await this.friendsService.findReceivedRequests(request.user.id);
   }
 
@@ -109,11 +197,15 @@ export class FriendsController {
     description: 'Request was send successfully',
   })
   @ApiBadRequestResponse({ type: AddFriendRequestErrorResponse })
-  async addFriendRequest(
-    @Query('user', ParseUUIDPipe) user: string,
+  public async addFriendRequest(
+    @Query('username') username: string,
     @Req() request: any,
   ) {
-    await this.friendsService.addFriendRequest(request.user.id, user);
+    const friend = await this.usersService.findByUsername(username);
+    if (friend === null) {
+      throw new BadRequestException(AddFriendError.invalidUser);
+    }
+    await this.friendsService.addFriendRequest(request.user.id, friend.id);
   }
 
   @Delete('request')
@@ -121,14 +213,27 @@ export class FriendsController {
   @ApiBearerAuth()
   @ApiOkResponse({ description: 'request was deleted' })
   @ApiBadRequestResponse({ type: DeleteFriendRequestErrorResponse })
-  async deleteFriendRequest(
+  public async deleteFriendRequest(
     @Req() request: any,
-    @Query('user', ParseUUIDPipe)
-    user: string,
+    @Query('requestID', ParseUUIDPipe)
+    requestID: string,
   ) {
     return await this.friendsService.deleteFriendShipRequest(
       request.user.id,
-      user,
+      requestID,
     );
+  }
+
+  @Put('ignore-request')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOkResponse({ description: 'request was ignored' })
+  @ApiBadRequestResponse({ type: IgnoreFriendRequestErrorResponse })
+  public async ignoreFriendRequest(
+    @Req() request: any,
+    @Query('requestID', ParseUUIDPipe)
+    requestID: string,
+  ) {
+    await this.friendsService.ignoreFriendRequest(requestID);
   }
 }

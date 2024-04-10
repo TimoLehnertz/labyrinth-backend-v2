@@ -1,5 +1,5 @@
 import { TypeOrmSQLITETestingModule } from 'test-utils/TypeORMSQLITETestingModule';
-import { UsersService } from './users.service';
+import { RegisterError, UsersService } from './users.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { User } from './entities/user.entity';
 import { BadRequestException } from '@nestjs/common';
@@ -22,7 +22,7 @@ describe('users.service', () => {
       password: '12345678',
       username: 'max',
     });
-    const max = await service.findOne('max');
+    const max = await service.findByUsername('max');
     expect(max).toBeDefined();
     expect(max?.email).toBe('max@musterman.com');
     expect(max?.username).toBe('max');
@@ -43,7 +43,7 @@ describe('users.service', () => {
       });
     };
     expect(f).rejects.toThrow(BadRequestException);
-    expect(f).rejects.toThrow('email-taken');
+    expect(f).rejects.toThrow(RegisterError.emailTaken);
   });
 
   it('username exists', async () => {
@@ -60,6 +60,6 @@ describe('users.service', () => {
       });
     };
     expect(f).rejects.toThrow(BadRequestException);
-    expect(f).rejects.toThrow('username-taken');
+    expect(f).rejects.toThrow(RegisterError.usernameTaken);
   });
 });

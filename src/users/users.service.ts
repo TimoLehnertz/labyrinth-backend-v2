@@ -16,14 +16,11 @@ export class UsersService {
     @InjectRepository(User) private usersRepository: Repository<User>,
   ) {}
 
-  findOne(usernameOrEmail: string): Promise<User | null> {
+  findByUsername(username: string): Promise<User | null> {
     return this.usersRepository.findOne({
       where: [
         {
-          email: usernameOrEmail,
-        },
-        {
-          username: usernameOrEmail,
+          username,
         },
       ],
     });

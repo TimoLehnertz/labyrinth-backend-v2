@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { patchNestJsSwagger } from 'nestjs-zod';
 import { ValidationPipe } from '@nestjs/common';
+import { AsyncApiDocumentBuilder, AsyncApiModule } from 'nestjs-asyncapi';
 
 export interface EnvironmentVariables {
   PORT: number;
@@ -30,7 +31,22 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, documentBuilder);
   SwaggerModule.setup('api', app, document);
 
+  const asyncApiOptions = new AsyncApiDocumentBuilder()
+    .setTitle('Labyrinth')
+    .setDescription('The Labyrinth API description')
+    .setVersion('1.0')
+    .setDefaultContentType('application/json')
+    .addBearerAuth()
+    .addServer('labyrinth', {
+      url: 'ws://localhost:3001',
+      protocol: 'socket.io',
+    })
+    .build();
+
+  const asyncapiDocument = AsyncApiModule.createDocument(app, asyncApiOptions);
+  await AsyncApiModule.setup('asyncapi', app, asyncapiDocument);
+
   const config = app.get(ConfigService<EnvironmentVariables>);
-  await app.listen(config.get<number>('PORT', 3001));
+  await app.listen(config.getOrThrow<number>('PORT'));
 }
 bootstrap();

@@ -1,5 +1,10 @@
 import { Test } from '@nestjs/testing';
-import { FriendsService } from './friends.service';
+import {
+  AddFriendError,
+  DeleteFriendError,
+  DeleteFriendShipRequestError,
+  FriendsService,
+} from './friends.service';
 import { UsersService } from 'users/users.service';
 import { DataSource } from 'typeorm';
 import { setupTestDataSource } from 'test-utils/testPosgres';
@@ -34,7 +39,6 @@ describe('friends.service', () => {
     friendsService = testingModule.get<FriendsService>(FriendsService);
     usersService = testingModule.get<UsersService>(UsersService);
 
-    friendsService;
     await usersService.register({
       email: 'max@musterman.com',
       password: '12345678',
@@ -45,8 +49,8 @@ describe('friends.service', () => {
       password: '12345678',
       username: 'tom',
     });
-    const tom1 = await usersService.findOne('max');
-    const max1 = await usersService.findOne('tom');
+    const tom1 = await usersService.findByUsername('max');
+    const max1 = await usersService.findByUsername('tom');
     if (tom1 && max1) {
       max = tom1;
       tom = max1;
@@ -72,8 +76,8 @@ describe('friends.service', () => {
     expect((await friendsService.findSendRequests(max.id)).length).toBe(0);
     const maxFriends = await friendsService.findFriends(max.id);
     expect(maxFriends.length).toBe(1);
-    expect(maxFriends[0].userA).toBe(max.id);
-    expect(maxFriends[0].userB).toBe(tom.id);
+    expect(maxFriends[0].usera).toBe(max.id);
+    expect(maxFriends[0].userb).toBe(tom.id);
   });
 
   it('same user', async () => {
@@ -81,7 +85,7 @@ describe('friends.service', () => {
       await friendsService.addFriendRequest(max.id, max.id);
     };
     expect(f).rejects.toThrow(BadRequestException);
-    expect(f).rejects.toThrow('same user');
+    expect(f).rejects.toThrow(AddFriendError.sameUser);
   });
 
   it('invalid user1', async () => {
@@ -92,7 +96,7 @@ describe('friends.service', () => {
       );
       fail('Exception expected');
     } catch (e) {
-      expect(e.message).toMatch('invalid user');
+      expect(e.message).toMatch(AddFriendError.invalidUser);
     }
   });
 
@@ -104,7 +108,7 @@ describe('friends.service', () => {
       );
       fail('Exception expected');
     } catch (e) {
-      expect(e.message).toMatch('invalid user');
+      expect(e.message).toMatch(AddFriendError.invalidUser);
     }
   });
 
@@ -115,7 +119,7 @@ describe('friends.service', () => {
       await friendsService.addFriendRequest(max.id, tom.id);
       fail('expected exception');
     } catch (e) {
-      expect(e.message).toBe('already friends');
+      expect(e.message).toBe(AddFriendError.alreadyFriends);
     }
   });
 
@@ -125,7 +129,7 @@ describe('friends.service', () => {
       await friendsService.addFriendRequest(max.id, tom.id);
       fail('expected exception');
     } catch (e) {
-      expect(e.message).toBe('already sent');
+      expect(e.message).toBe(AddFriendError.alreadySent);
     }
   });
 
@@ -134,8 +138,8 @@ describe('friends.service', () => {
     await friendsService.addFriendRequest(tom.id, max.id);
     const friends = await friendsService.findFriends(max.id);
     expect(friends.length).toBe(1);
-    expect(friends[0].userA).toBe(max.id);
-    expect(friends[0].userB).toBe(tom.id);
+    expect(friends[0].usera).toBe(max.id);
+    expect(friends[0].userb).toBe(tom.id);
   });
 
   it('findSendRequests', async () => {
@@ -159,7 +163,7 @@ describe('friends.service', () => {
     await friendsService.addFriendRequest(tom.id, max.id);
     let friends = await friendsService.findFriends(max.id);
     expect(friends.length).toBe(1);
-    await friendsService.deleteFriend(max.id, tom.id);
+    await friendsService.deleteFriendship(max.id, friends[0].id);
     friends = await friendsService.findFriends(max.id);
     expect(friends.length).toBe(0);
 
@@ -167,17 +171,20 @@ describe('friends.service', () => {
     await friendsService.addFriendRequest(tom.id, max.id);
     friends = await friendsService.findFriends(max.id);
     expect(friends.length).toBe(1);
-    await friendsService.deleteFriend(tom.id, max.id); // other way around
+    await friendsService.deleteFriendship(tom.id, friends[0].id); // other way arround
     friends = await friendsService.findFriends(max.id);
     expect(friends.length).toBe(0);
   });
 
   it('friendship does not exist', async () => {
     try {
-      await friendsService.deleteFriend(max.id, tom.id);
+      await friendsService.deleteFriendship(
+        tom.id,
+        'bbb6bd3b-fc98-4ba6-9f98-2374e689502e',
+      );
       fail('expected exception');
     } catch (e) {
-      expect(e.message).toBe('friendship does not exist');
+      expect(e.message).toBe(DeleteFriendError.friendDoesNotExist);
     }
   });
 
@@ -185,14 +192,7 @@ describe('friends.service', () => {
     await friendsService.addFriendRequest(max.id, tom.id);
     let requests = await friendsService.findReceivedRequests(tom.id);
     expect(requests.length).toBe(1);
-    await friendsService.deleteFriendShipRequest(max.id, tom.id);
-    requests = await friendsService.findReceivedRequests(max.id);
-    expect(requests.length).toBe(0);
-
-    await friendsService.addFriendRequest(max.id, tom.id);
-    requests = await friendsService.findReceivedRequests(tom.id);
-    expect(requests.length).toBe(1);
-    await friendsService.deleteFriendShipRequest(tom.id, max.id); // other way around
+    await friendsService.deleteFriendShipRequest(max.id, requests[0].id);
     requests = await friendsService.findReceivedRequests(max.id);
     expect(requests.length).toBe(0);
   });
@@ -202,7 +202,7 @@ describe('friends.service', () => {
       await friendsService.deleteFriendShipRequest(max.id, tom.id);
       fail('expected exception');
     } catch (e) {
-      expect(e.message).toBe('request does not exist');
+      expect(e.message).toBe(DeleteFriendShipRequestError.requestDoesNotExist);
     }
   });
 });

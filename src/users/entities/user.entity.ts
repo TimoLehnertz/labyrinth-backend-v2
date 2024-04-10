@@ -1,3 +1,5 @@
+import { ApiHideProperty } from '@nestjs/swagger';
+import { Exclude, instanceToPlain } from 'class-transformer';
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity({
@@ -14,5 +16,11 @@ export class User {
   username: string;
 
   @Column({ length: 200 })
+  @ApiHideProperty()
+  @Exclude({ toPlainOnly: true })
   password: string;
+
+  toJSON() {
+    return instanceToPlain(this);
+  }
 }
