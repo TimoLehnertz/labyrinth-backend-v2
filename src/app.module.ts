@@ -8,7 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { Friendship } from './users/friends/entities/friendship.entity';
 import { FriendRequest } from './users/friends/entities/friendRequest.entity';
 import { GameModule } from './game/game.module';
-import { UserPlaysGame } from 'game/entities/UserPlaysGame.entity';
+import { PlayerPlaysGame } from 'game/entities/PlayerPlaysGame.entity';
 import { Game } from 'game/entities/game.entity';
 
 @Module({
@@ -28,7 +28,7 @@ import { Game } from 'game/entities/game.entity';
           username: configService.get<string>('DATABASE_USER', 'postgres'),
           password: configService.get<string>('DATABASE_PASSWORD'),
           database: configService.get<string>('DATABASE_SCHEMA'),
-          entities: [User, Friendship, FriendRequest, UserPlaysGame, Game],
+          entities: [User, Friendship, FriendRequest, PlayerPlaysGame, Game],
           retryAttempts: 2,
           // synchronize: true, ??
         };

@@ -1,5 +1,5 @@
-import { IsEnum, IsNumber, ValidateNested } from 'class-validator';
-import { Heading, Move, ShiftPosition } from 'labyrinth-game-logic';
+import { IsEnum, IsNumber, ValidateIf, ValidateNested } from 'class-validator';
+import { ShiftPosition } from 'labyrinth-game-logic';
 
 export class BoardPositionDto {
   @IsNumber()
@@ -9,22 +9,32 @@ export class BoardPositionDto {
   y: number;
 }
 
+export enum Heading {
+  NORTH = 0,
+  EAST = 1,
+  SOUTH = 2,
+  WEST = 3,
+}
+
 export class ShiftPositionDto {
   @IsEnum(Heading)
-  shiftHeading: Heading;
+  heading: Heading;
 
   @IsNumber()
   index: number;
 
   static fromShiftPosition(shiftPosition: ShiftPosition): ShiftPositionDto {
     const shiftPositionDto = new ShiftPositionDto();
-    shiftPositionDto.shiftHeading = shiftPosition.heading;
+    shiftPositionDto.heading = shiftPosition.heading;
     shiftPositionDto.index = shiftPosition.index;
     return shiftPositionDto;
   }
 }
 
 export class MoveDto {
+  @IsNumber()
+  playerIndex: number;
+
   @IsNumber()
   rotateBeforeShift: number;
 
@@ -38,16 +48,17 @@ export class MoveDto {
   to: BoardPositionDto;
 
   @IsNumber()
-  collectedTreasure: number;
+  @ValidateIf((object, value) => value !== null)
+  collectedTreasure: number | null;
 
-  public static fromMove(move: Move): MoveDto {
-    const moveDto: MoveDto = new MoveDto();
-    moveDto.rotateBeforeShift = move.rotateBeforeShift;
-    moveDto.shiftPosition = ShiftPositionDto.fromShiftPosition(
-      move.shiftPosition,
-    );
-    moveDto.from = move.from;
-    moveDto.to = move.to;
-    return moveDto;
-  }
+  //   public static fromMove(move: Move): MoveDto {
+  //     const moveDto: MoveDto = new MoveDto();
+  //     moveDto.rotateBeforeShift = move.rotateBeforeShift;
+  //     moveDto.shiftPosition = ShiftPositionDto.fromShiftPosition(
+  //       move.shiftPosition,
+  //     );
+  //     moveDto.from = move.from;
+  //     moveDto.to = move.to;
+  //     return moveDto;
+  //   }
 }

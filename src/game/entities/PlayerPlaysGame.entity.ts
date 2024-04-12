@@ -15,7 +15,7 @@ export enum BotType {
 @Entity({
   name: 'player_plays_game',
 })
-export class UserPlaysGame {
+export class PlayerPlaysGame {
   @PrimaryGeneratedColumn()
   id: string;
 

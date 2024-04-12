@@ -1,11 +1,16 @@
 import {
+  BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
+  ParseBoolPipe,
+  ParseIntPipe,
   ParseUUIDPipe,
   Post,
+  Put,
   Query,
   Req,
   UseGuards,
@@ -15,15 +20,22 @@ import {
   ApiBearerAuth,
   ApiBadRequestResponse,
   ApiProperty,
+  ApiCreatedResponse,
 } from '@nestjs/swagger';
 import {
   AddUserToGameError,
   CreateGameError,
   GameService,
+  MakeAdminError,
   MoveError,
+  RemoveGamePlayerError,
+  UpdateGameError,
 } from './game.service';
 import { CreateGameDto } from './dto/create-game.dto';
 import { AuthGuard } from 'auth/auth.guard';
+import { Game } from './entities/game.entity';
+import { UpdateGameDto } from './dto/update-game.dto';
+import { PlayerPlaysGame } from './entities/PlayerPlaysGame.entity';
 
 class MoveErrorResponse {
   @ApiProperty({
@@ -39,6 +51,13 @@ class CreateGameErrorResponse {
   message: CreateGameError;
 }
 
+class UpdateGameErrorResponse {
+  @ApiProperty({
+    enum: UpdateGameError,
+  })
+  message: UpdateGameError;
+}
+
 class JoinErrorResponse {
   @ApiProperty({
     enum: AddUserToGameError,
@@ -46,9 +65,73 @@ class JoinErrorResponse {
   message: AddUserToGameError;
 }
 
+class RemoveGamePlayerErrorResponse {
+  @ApiProperty({
+    enum: RemoveGamePlayerError,
+  })
+  message: RemoveGamePlayerError;
+}
+
+class MakeAdminErrorResponse {
+  @ApiProperty({
+    enum: MakeAdminError,
+  })
+  message: MakeAdminError;
+}
+
+class CreateGameResponse {
+  @ApiProperty()
+  gameID: string;
+}
+
+class GetErrorResponse {
+  message: 'game does not exist';
+}
+
 @Controller('game')
 export class GameController {
   constructor(private gameService: GameService) {}
+
+  @Post('')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiBadRequestResponse({ type: CreateGameErrorResponse })
+  @ApiCreatedResponse({
+    type: CreateGameResponse,
+  })
+  async create(
+    @Req() request: any,
+    @Body() createGameDto: CreateGameDto,
+  ): Promise<CreateGameResponse> {
+    const game = await this.gameService.create(request.user.id, createGameDto);
+    return {
+      gameID: game.id,
+    };
+  }
+
+  @Get('')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiBadRequestResponse({ type: GetErrorResponse })
+  async findOne(
+    @Req() request: any,
+    @Query('gameID', ParseUUIDPipe) gameID: string,
+  ): Promise<Game> {
+    const game = await this.gameService.findOne(gameID);
+    if (game === null) {
+      throw new BadRequestException('game does not exist');
+    }
+    return game;
+  }
+
+  @Put('/')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiBadRequestResponse({ type: UpdateGameErrorResponse })
+  async update(@Req() request: any, @Body() updateGameDto: UpdateGameDto) {
+    await this.gameService.update(request.user.id, updateGameDto);
+  }
+
   @Post('move')
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
@@ -61,20 +144,20 @@ export class GameController {
     await this.gameService.move(request.user.id, gameID, moveDto);
   }
 
-  @Post('')
-  @UseGuards(AuthGuard)
-  @ApiBearerAuth()
-  @ApiBadRequestResponse({ type: CreateGameErrorResponse })
-  async create(@Req() request: any, @Body() createGameDto: CreateGameDto) {
-    await this.gameService.create(request.user.id, createGameDto);
-  }
-
   @Get('availableToJoin')
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
-  @ApiBadRequestResponse({ type: MoveErrorResponse })
-  async findAvailableToJoin(@Req() request: any) {
-    await this.gameService.findAvailableToJoin(request.user.id);
+  findAvailableToJoin(@Req() request: any) {
+    return this.gameService.findAvailableToJoin(request.user.id);
+  }
+
+  @Get('players')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  async findPlayers(
+    @Query('gameID', ParseUUIDPipe) gameID: string,
+  ): Promise<PlayerPlaysGame[]> {
+    return this.gameService.findGamePlayers(gameID);
   }
 
   @Post('join')
@@ -87,5 +170,45 @@ export class GameController {
     @Query('game', ParseUUIDPipe) gameID: string,
   ) {
     await this.gameService.addUserToGame(request.user.id, gameID);
+  }
+
+  @Put('ready')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  async setReady(
+    @Req() request: any,
+    @Query('game', ParseUUIDPipe) gameID: string,
+    @Query('ready', ParseBoolPipe) ready: boolean,
+  ) {
+    await this.gameService.setReady(request.user.id, gameID, ready);
+  }
+
+  @Delete('/leave')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiBadRequestResponse({ type: RemoveGamePlayerErrorResponse })
+  async leaveGame(
+    @Req() request: any,
+    @Query('gameID', ParseUUIDPipe) gameID: string,
+    @Query('userIndex', ParseIntPipe) playerIndex: number,
+  ) {
+    await this.gameService.removeGamePlayer(
+      request.user.id,
+      gameID,
+      playerIndex,
+    );
+  }
+
+  @Put('/makeAdmin')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiBadRequestResponse({ type: MakeAdminErrorResponse })
+  async makeAdmin(
+    @Req() request: any,
+    @Query('gameID', ParseUUIDPipe) gameID: string,
+    @Query('userID', ParseUUIDPipe) newAdminID: string,
+  ) {
+    await this.gameService.makeAdmin(request.user.id, newAdminID, gameID);
   }
 }

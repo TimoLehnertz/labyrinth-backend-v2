@@ -3,11 +3,12 @@ import {
   EntitySubscriberInterface,
   InsertEvent,
   RemoveEvent,
+  UpdateEvent,
 } from 'typeorm';
 
 import { Socket } from 'socket.io';
 
-export type EntityOperation = 'insert' | 'remove';
+export type EntityOperation = 'insert' | 'remove' | 'update';
 
 export interface WsSubscriberOptions<T> {
   operations?: EntityOperation[];
@@ -58,30 +59,38 @@ class Client<T> {
     this.socket.emit('add', await this.process(insertEvent.entity, 'insert'));
   }
 
-  //   afterUpdate(updateEvent: UpdateEvent<T>) {
-  //     if (!updateEvent.entity) {
-  //       return;
-  //     }
-  //     if (!this.canPass(updateEvent.entity)) {
-  //       return;
-  //     }
-  //     this.socket.emit('update', updateEvent.entity);
-  //   }
+  async afterUpdate(updateEvent: UpdateEvent<T>) {
+    if (!updateEvent.entity) {
+      return;
+    }
+    if (!this.canPass(updateEvent.entity as any, 'update')) {
+      return;
+    }
+    console.log('emit update');
+    this.socket.emit(
+      'update',
+      await this.process(updateEvent.entity as any, 'remove'),
+    );
+  }
 
-  async afterRemove(insertEvent: RemoveEvent<T>) {
+  async beforeRemove(removeEvent: RemoveEvent<T>) {
+    console.log(removeEvent);
     if (!this.operationIncluded('remove')) {
       return;
     }
     if (
-      !insertEvent.entity ||
-      !(await this.canPass(insertEvent.entity, 'remove'))
+      !removeEvent.entity ||
+      !(await this.canPass(removeEvent.entity, 'remove'))
     ) {
       return;
     }
-    console.log('emit remove', insertEvent.entity);
+    console.log('emit remove', removeEvent.entity);
     this.socket.emit(
       'remove',
-      await this.process(insertEvent.entity, 'remove'),
+      await this.process(
+        JSON.parse(JSON.stringify(removeEvent.entity)), // prevent delete from removing the id
+        'remove',
+      ),
     );
   }
 }
@@ -101,15 +110,15 @@ export abstract class WsEntitySubscriber<T>
     }
   }
 
-  //   afterUpdate(event: UpdateEvent<T>) {
-  //     for (const client of this.clients) {
-  //       client.afterUpdate(event);
-  //     }
-  //   }
-
-  afterRemove(event: RemoveEvent<T>) {
+  afterUpdate(event: UpdateEvent<T>) {
     for (const client of this.clients) {
-      client.afterRemove(event);
+      client.afterUpdate(event);
+    }
+  }
+
+  beforeRemove(event: RemoveEvent<T>) {
+    for (const client of this.clients) {
+      client.beforeRemove(event);
     }
   }
 

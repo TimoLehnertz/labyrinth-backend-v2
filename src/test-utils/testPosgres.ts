@@ -6,7 +6,7 @@ import { Friendship } from 'users/friends/entities/friendship.entity';
 import { User } from 'users/entities/user.entity';
 import { DynamicModule } from '@nestjs/common';
 import { Game } from 'game/entities/game.entity';
-import { UserPlaysGame } from 'game/entities/UserPlaysGame.entity';
+import { PlayerPlaysGame } from 'game/entities/PlayerPlaysGame.entity';
 
 export async function setupTestDataSource(): Promise<{
   forRoot: DynamicModule;
@@ -19,7 +19,7 @@ export async function setupTestDataSource(): Promise<{
     username: 'postgres',
     password: 'PredictIT',
     database: 'postgres',
-    entities: [User, Friendship, FriendRequest, UserPlaysGame, Game],
+    entities: [User, Friendship, FriendRequest, PlayerPlaysGame, Game],
   };
   const forRoot = TypeOrmModule.forRoot(config);
 
