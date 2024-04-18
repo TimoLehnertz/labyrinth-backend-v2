@@ -25,6 +25,7 @@ export enum AddUserToGameError {
   GAME_DOES_NOT_EXIST = 'game does not exist',
   ALREADY_PLAYING = 'already playing',
   USER_DOES_NOT_EXIST = 'user does not exist',
+  GAME_ALREADY_STARTED = 'game has already started',
 }
 
 export enum MoveError {
@@ -55,6 +56,11 @@ export enum UpdateGameError {
 export enum RemoveGamePlayerError {
   GAME_DOES_NOT_EXIST = 'game does not exist',
   NO_PERMISSION = 'no permission',
+  GAME_ALREADY_STARTED = 'game has already started',
+}
+
+export enum SetReadyError {
+  GAME_DOES_NOT_EXIST = 'game does not exist',
   GAME_ALREADY_STARTED = 'game has already started',
 }
 
@@ -112,11 +118,15 @@ export class GameService {
     return dbGame;
   }
 
-  async startGame(gameID: string) {
+  private async startGame(gameID: string) {
     const game = await this.findOne(gameID);
     if (game === null) {
       throw new BadRequestException(StartGameError.GAME_DOES_NOT_EXIST);
     }
+    const players = await this.findGamePlayers(gameID);
+    const gameSetup: GameSetup = JSON.parse(game.gameSetup);
+    gameSetup.playerCount = players.length;
+    game.gameState = LabyrinthGame.buildFromSetup(gameSetup).stringify();
     game.started = true;
     await this.gameRepository.update({ id: game.id }, game);
   }
@@ -133,6 +143,13 @@ export class GameService {
   }
 
   async setReady(userID: string, gameID: string, ready: boolean) {
+    const game = await this.findOne(gameID);
+    if (game === null) {
+      throw new BadRequestException(SetReadyError.GAME_DOES_NOT_EXIST);
+    }
+    if (game.started) {
+      throw new BadRequestException(SetReadyError.GAME_ALREADY_STARTED);
+    }
     const playerPlaysGame = await this.playerPlaysGameRepository.findOne({
       where: {
         gameID,
@@ -144,7 +161,7 @@ export class GameService {
     }
     playerPlaysGame.ready = ready;
     await this.playerPlaysGameRepository.update(
-      { id: userID },
+      { id: playerPlaysGame.id },
       playerPlaysGame,
     );
     const players = await this.findGamePlayers(gameID);
@@ -153,8 +170,8 @@ export class GameService {
     }
     for (const player of players) {
       if (!player.ready) {
+        return; // not ready
       }
-      return; // not ready
     }
     await this.startGame(gameID);
   }
@@ -203,7 +220,6 @@ export class GameService {
         }
         game.ownerUserID = player.userID;
         await this.gameRepository.update({ id: game.id }, game);
-        console.log('updated owner: ', player.userID);
       }
     }
     await this.playerPlaysGameRepository.remove(removePlayer);
@@ -227,6 +243,20 @@ export class GameService {
     await this.gameRepository.update({ id: gameID }, game);
   }
 
+  async findOwnGames(userID: string): Promise<Game[]> {
+    const players = await this.playerPlaysGameRepository.findBy({
+      userID,
+    });
+    const games: Game[] = [];
+    for (const player of players) {
+      const game = await this.findOne(player.gameID);
+      if (game !== null) {
+        games.push(game);
+      }
+    }
+    return games;
+  }
+
   async addUserToGame(userID: string, gameID: string) {
     const user = await this.usersService.findById(userID);
     if (user === null) {
@@ -235,6 +265,9 @@ export class GameService {
     const game = await this.findOne(gameID);
     if (game === null) {
       throw new BadRequestException(AddUserToGameError.GAME_DOES_NOT_EXIST);
+    }
+    if (game.started) {
+      throw new BadRequestException(AddUserToGameError.GAME_ALREADY_STARTED);
     }
     const existingPlayers = await this.findGamePlayers(game.id);
     let playerIndex = 0;
@@ -294,7 +327,8 @@ export class GameService {
     return new Move(
       moveDto.playerIndex,
       moveDto.rotateBeforeShift,
-      GameService.shiftPositionFromDTO(moveDto.shiftPosition),
+      GameService.shiftPositionFromDTO(moveDto.fromShiftPosition),
+      GameService.shiftPositionFromDTO(moveDto.toShiftPosition),
       GameService.boardPositionFromDTO(moveDto.from),
       GameService.boardPositionFromDTO(moveDto.to),
       GameService.treasureFromDTO(moveDto.collectedTreasure),
@@ -302,7 +336,7 @@ export class GameService {
   }
 
   async move(userID: string, gameID: string, move: MoveDto | Move) {
-    if (move instanceof MoveDto) {
+    if (!(move instanceof Move)) {
       move = GameService.moveFromDto(move);
     }
     const gamePlayer = await this.playerPlaysGameRepository.findOne({
@@ -332,6 +366,7 @@ export class GameService {
     try {
       game.move(move);
     } catch (e) {
+      console.log('invalid move', e, move);
       throw new BadRequestException(MoveError.INVALID_MOVE);
     }
     dbGame.gameState = game.stringify();
@@ -390,6 +425,16 @@ export class GameService {
       },
     });
   }
+
+  // findGamePlayer(
+  //   userID: string,
+  //   gameID: string,
+  // ): Promise<PlayerPlaysGame | null> {
+  //   return this.playerPlaysGameRepository.findOneBy({
+  //     gameID,
+  //     userID,
+  //   });
+  // }
 
   async update(userID: string, updateGameDto: UpdateGameDto) {
     const game = await this.findOne(updateGameDto.id);

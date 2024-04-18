@@ -37,6 +37,6 @@ export class PlayerPlaysGame {
   @Column({ name: 'playerindex' })
   playerIndex: number;
 
-  @Column()
+  @Column({ type: 'boolean' })
   ready: boolean;
 }

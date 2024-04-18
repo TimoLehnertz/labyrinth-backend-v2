@@ -30,9 +30,6 @@ export class GameSetupDto {
   seed: string;
 
   @IsNumber()
-  playerCount: number;
-
-  @IsNumber()
   @Min(7)
   boardWidth: number;
 

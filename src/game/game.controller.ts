@@ -103,6 +103,7 @@ export class GameController {
     @Req() request: any,
     @Body() createGameDto: CreateGameDto,
   ): Promise<CreateGameResponse> {
+    console.log(request.user);
     const game = await this.gameService.create(request.user.id, createGameDto);
     return {
       gameID: game.id,
@@ -123,6 +124,16 @@ export class GameController {
     }
     return game;
   }
+
+  // @Get('gamePlayer')
+  // @UseGuards(AuthGuard)
+  // @ApiBearerAuth()
+  // async findGamePlayer(
+  //   @Req() request: any,
+  //   @Query('gameID', ParseUUIDPipe) gameID: string,
+  // ): Promise<PlayerPlaysGame | null> {
+  //   return this.gameService.findGamePlayer(request.user.id, gameID);
+  // }
 
   @Put('/')
   @UseGuards(AuthGuard)
@@ -158,6 +169,13 @@ export class GameController {
     @Query('gameID', ParseUUIDPipe) gameID: string,
   ): Promise<PlayerPlaysGame[]> {
     return this.gameService.findGamePlayers(gameID);
+  }
+
+  @Get('ownGames')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  findOwnGames(@Req() request: any): Promise<Game[]> {
+    return this.gameService.findOwnGames(request.user.id);
   }
 
   @Post('join')

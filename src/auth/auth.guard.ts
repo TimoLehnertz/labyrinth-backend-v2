@@ -7,12 +7,14 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
+import { UsersService } from 'users/users.service';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
     private jwtService: JwtService,
     private configService: ConfigService,
+    private usersService: UsersService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -27,7 +29,12 @@ export class AuthGuard implements CanActivate {
       });
       // 💡 We're assigning the payload to the request object here
       // so that we can access it in our route handlers
-      request['user'] = payload;
+      const user = await this.usersService.findById(payload.id);
+      if (user !== null) {
+        request['user'] = user;
+      } else {
+        throw new UnauthorizedException();
+      }
     } catch {
       throw new UnauthorizedException();
     }

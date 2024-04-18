@@ -9,9 +9,11 @@ import { UsersService } from 'users/users.service';
 import { Game, GameVisibility } from './entities/game.entity';
 import { PlayerPlaysGame } from './entities/PlayerPlaysGame.entity';
 import {
+  GameSetup,
   generateMoves,
   generateShiftPositions,
   Game as LabyrinthGame,
+  Move,
 } from 'labyrinth-game-logic';
 import { Friendship } from 'users/friends/entities/friendship.entity';
 import { FriendRequest } from 'users/friends/entities/friendRequest.entity';
@@ -147,27 +149,29 @@ describe('GameService', () => {
   });
 
   test('startGame', async () => {
-    await gameService.create(max.id, {
+    const dbGame = await gameService.create(max.id, {
       visibility: GameVisibility.PUBLIC,
       gameSetup: LabyrinthGame.getDefaultSetup(),
     });
-    let games = await gameService.findAvailableToJoin(tom.id);
-    expect(games.length).toBe(1);
-    await gameService.startGame(max.id, games[0]!.id);
-    games = await gameService.findAvailableToJoin(tom.id);
-    expect(games.length).toBe(0);
+    const gameSetup: GameSetup = JSON.parse(dbGame.gameSetup);
+    expect(gameSetup.playerCount).toBe(4);
+    await gameService.addUserToGame(tom.id, dbGame.id);
+    await gameService.setReady(max.id, dbGame.id, true);
+    await gameService.setReady(tom.id, dbGame.id, true);
+    const startedGame = await gameService.findOne(dbGame.id);
+    expect(startedGame?.started).toBe(true);
+    const gameInstance = LabyrinthGame.buildFromString(startedGame!.gameState);
+    expect(gameInstance.gameState.allPlayerStates.playerCount).toBe(2);
   });
 
   test('move', async () => {
-    await gameService.create(max.id, {
+    const game = await gameService.create(max.id, {
       visibility: GameVisibility.PUBLIC,
       gameSetup: LabyrinthGame.getDefaultSetup(),
     });
-    const games = await gameService.findAvailableToJoin(tom.id);
-    expect(games.length).toBe(1);
-    await gameService.startGame(max.id, games[0]!.id);
-    const game = await gameService.findOne(games[0].id);
-    expect(game?.id).toBe(games[0].id);
+    await gameService.addUserToGame(tom.id, game.id);
+    await gameService.setReady(max.id, game.id, true);
+    await gameService.setReady(tom.id, game.id, true);
     const gameHelper = LabyrinthGame.buildFromString(game!.gameState);
     const shiftPositions = generateShiftPositions(gameHelper.gameState);
     const moves = generateMoves(gameHelper.gameState, shiftPositions[0], 0);
@@ -244,7 +248,9 @@ describe('GameService', () => {
       visibility: GameVisibility.PUBLIC,
       gameSetup: LabyrinthGame.getDefaultSetup(),
     });
-    await gameService.startGame(max.id, dbGame.id);
+    await gameService.addUserToGame(tom.id, dbGame.id);
+    await gameService.setReady(max.id, dbGame.id, true);
+    await gameService.setReady(tom.id, dbGame.id, true);
     try {
       await gameService.update(max.id, {
         id: dbGame.id,
@@ -289,7 +295,6 @@ describe('GameService', () => {
         streightCards: 0,
         tCards: 0,
       },
-      playerCount: 4,
       seed: 'seed123',
       treasureCardChances: {
         fixCardTreasureChance: 1,
@@ -318,8 +323,31 @@ describe('GameService', () => {
     });
     let gamePlayers = await gameService.findGamePlayers(dbGame.id);
     expect(gamePlayers.length).toBe(1);
-    await gameService.removeGamePlayer(max.id, dbGame.id, max.id);
+    await gameService.removeGamePlayer(max.id, dbGame.id, 0);
     gamePlayers = await gameService.findGamePlayers(dbGame.id);
     expect(gamePlayers.length).toBe(0);
+  });
+
+  test('move listeners', async () => {
+    let moved = false;
+    const game = await gameService.create(max.id, {
+      visibility: GameVisibility.PUBLIC,
+      gameSetup: LabyrinthGame.getDefaultSetup(),
+    });
+    await gameService.addUserToGame(tom.id, game.id);
+    await gameService.setReady(max.id, game.id, true);
+    await gameService.setReady(tom.id, game.id, true);
+    const gameHelper = LabyrinthGame.buildFromString(game!.gameState);
+    const shiftPositions = generateShiftPositions(gameHelper.gameState);
+    const moves = generateMoves(gameHelper.gameState, shiftPositions[0], 0);
+    const listener = (gameID: string, move: Move) => {
+      if (gameID === game.id && move.playerIndex === 0) {
+        moved = true;
+      }
+    };
+    gameService.addMoveListener(listener);
+    await gameService.move(max.id, game!.id, moves[0]);
+    expect(moved).toBeTruthy();
+    gameService.removeMoveListener(listener);
   });
 });

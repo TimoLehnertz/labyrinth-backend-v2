@@ -39,7 +39,10 @@ export class MoveDto {
   rotateBeforeShift: number;
 
   @ValidateNested()
-  shiftPosition: ShiftPositionDto;
+  fromShiftPosition: ShiftPositionDto;
+
+  @ValidateNested()
+  toShiftPosition: ShiftPositionDto;
 
   @ValidateNested()
   from: BoardPositionDto;

@@ -17,6 +17,7 @@ import {
   ApiProperty,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { User } from 'users/entities/user.entity';
 // import { Response } from 'express';
 class LoginResponse {
   @ApiProperty()
@@ -48,6 +49,9 @@ export class AuthController {
   @Get('profile')
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
+  @ApiOkResponse({
+    type: User,
+  })
   getProfile(@Request() req: any) {
     return req.user;
   }
