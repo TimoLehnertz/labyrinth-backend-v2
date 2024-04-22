@@ -7,12 +7,14 @@ import { User } from 'users/entities/user.entity';
 import { FriendsService } from 'users/friends/friends.service';
 import { UsersService } from 'users/users.service';
 import { Game, GameVisibility } from './entities/game.entity';
-import { PlayerPlaysGame } from './entities/PlayerPlaysGame.entity';
+import { BotType, PlayerPlaysGame } from './entities/PlayerPlaysGame.entity';
 import {
+  buildMoveGenerator,
   GameSetup,
   generateMoves,
   generateShiftPositions,
   Game as LabyrinthGame,
+  manhattanEvaluator,
   Move,
 } from 'labyrinth-game-logic';
 import { Friendship } from 'users/friends/entities/friendship.entity';
@@ -175,7 +177,36 @@ describe('GameService', () => {
     const gameHelper = LabyrinthGame.buildFromString(game!.gameState);
     const shiftPositions = generateShiftPositions(gameHelper.gameState);
     const moves = generateMoves(gameHelper.gameState, shiftPositions[0], 0);
-    await gameService.move(max.id, game!.id, moves[0]);
+    await gameService.move(game!.id, moves[0], max.id);
+  });
+
+  test('addBot', async () => {
+    const game = await gameService.create(max.id, {
+      visibility: GameVisibility.PUBLIC,
+      gameSetup: LabyrinthGame.getDefaultSetup(),
+    });
+    await gameService.addBot(max.id, game.id, BotType.STRONG_BOT);
+    const gamePlayers = await gameService.findGamePlayers(game.id);
+    expect(gamePlayers.length).toBe(2);
+    expect(gamePlayers[1].botType).toBe(BotType.STRONG_BOT);
+    expect(gamePlayers[1].ready).toBe(true);
+  });
+
+  test('playBot', async () => {
+    let game: Game | null = await gameService.create(max.id, {
+      visibility: GameVisibility.PUBLIC,
+      gameSetup: LabyrinthGame.getDefaultSetup(),
+    });
+    await gameService.addBot(max.id, game.id, BotType.STRONG_BOT);
+    await gameService.setReady(max.id, game.id, true);
+    game = await gameService.findOne(game.id);
+    const generator = buildMoveGenerator(manhattanEvaluator);
+    const maxMove = generator(
+      LabyrinthGame.buildFromString(game!.gameState).gameState,
+    );
+    await gameService.move(game!.id, maxMove, max.id, 0);
+    const playerToMove = await gameService.findGamePlayerToMove(game!.id);
+    expect(playerToMove?.userID).toBe(max.id);
   });
 
   test('update OK', async () => {
@@ -346,7 +377,7 @@ describe('GameService', () => {
       }
     };
     gameService.addMoveListener(listener);
-    await gameService.move(max.id, game!.id, moves[0]);
+    await gameService.move(game!.id, moves[0], max.id);
     expect(moved).toBeTruthy();
     gameService.removeMoveListener(listener);
   });

@@ -20,6 +20,12 @@ export class User {
   @Exclude({ toPlainOnly: true })
   password: string;
 
+  @Column({ name: 'games_won', default: 0 })
+  gamesWon: number;
+
+  @Column({ name: 'games_lost', default: 0 })
+  gamesLost: number;
+
   toJSON() {
     return instanceToPlain(this);
   }

@@ -7,6 +7,7 @@ import {
   HttpCode,
   HttpStatus,
   ParseBoolPipe,
+  ParseEnumPipe,
   ParseIntPipe,
   ParseUUIDPipe,
   Post,
@@ -21,8 +22,10 @@ import {
   ApiBadRequestResponse,
   ApiProperty,
   ApiCreatedResponse,
+  ApiQuery,
 } from '@nestjs/swagger';
 import {
+  AddBotError,
   AddUserToGameError,
   CreateGameError,
   GameService,
@@ -35,7 +38,7 @@ import { CreateGameDto } from './dto/create-game.dto';
 import { AuthGuard } from 'auth/auth.guard';
 import { Game } from './entities/game.entity';
 import { UpdateGameDto } from './dto/update-game.dto';
-import { PlayerPlaysGame } from './entities/PlayerPlaysGame.entity';
+import { BotType, PlayerPlaysGame } from './entities/PlayerPlaysGame.entity';
 
 class MoveErrorResponse {
   @ApiProperty({
@@ -86,6 +89,13 @@ class CreateGameResponse {
 
 class GetErrorResponse {
   message: 'game does not exist';
+}
+
+class AddBotErrorResponse {
+  @ApiProperty({
+    enum: AddBotError,
+  })
+  message: AddBotError;
 }
 
 @Controller('game')
@@ -152,7 +162,7 @@ export class GameController {
     @Body() moveDto: MoveDto,
     @Query('game', ParseUUIDPipe) gameID: string,
   ) {
-    await this.gameService.move(request.user.id, gameID, moveDto);
+    await this.gameService.move(gameID, moveDto, request.user.id);
   }
 
   @Get('availableToJoin')
@@ -185,9 +195,22 @@ export class GameController {
   @HttpCode(HttpStatus.OK)
   async join(
     @Req() request: any,
-    @Query('game', ParseUUIDPipe) gameID: string,
+    @Query('gameID', ParseUUIDPipe) gameID: string,
   ) {
     await this.gameService.addUserToGame(request.user.id, gameID);
+  }
+
+  @Post('addBot')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiQuery({ name: 'botType', type: 'enum', enum: BotType })
+  @ApiBadRequestResponse({ type: AddBotErrorResponse })
+  async addBot(
+    @Req() request: any,
+    @Query('gameID', ParseUUIDPipe) gameID: string,
+    @Query('botType', new ParseEnumPipe(BotType)) botType: BotType,
+  ) {
+    await this.gameService.addBot(request.user.id, gameID, botType);
   }
 
   @Put('ready')

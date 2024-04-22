@@ -62,4 +62,21 @@ describe('users.service', () => {
     expect(f).rejects.toThrow(BadRequestException);
     expect(f).rejects.toThrow(RegisterError.usernameTaken);
   });
+
+  it('finished game', async () => {
+    await service.register({
+      email: 'max1@musterman.com',
+      password: '12345678',
+      username: 'max',
+    });
+    let max = await service.findByUsername('max');
+    await service.userFinishedGame(max!.id, true);
+    max = await service.findByUsername('max');
+    expect(max?.gamesWon).toBe(1);
+    expect(max?.gamesLost).toBe(0);
+    await service.userFinishedGame(max!.id, false);
+    max = await service.findByUsername('max');
+    expect(max?.gamesWon).toBe(1);
+    expect(max?.gamesLost).toBe(1);
+  });
 });

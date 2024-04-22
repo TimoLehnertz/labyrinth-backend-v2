@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS users_are_friends (
 );
 
 CREATE TABLE IF NOT EXISTS player_plays_game (
-    id UUID DEFAULT uuid_generate_v4 () PRIMARY KEY NOT NULL, bot_type varchar(30) NOT NULL, game UUID NOT NULL REFERENCES game, userID UUID REFERENCES users, playerIndex INT NOT NULL, ready BOOLEAN NOT NULL DEFAULT false, UNIQUE (game, userID)
+    id UUID DEFAULT uuid_generate_v4 () PRIMARY KEY NOT NULL, bot_type varchar(30) DEFAULT NULL, game UUID NOT NULL REFERENCES game, userID UUID REFERENCES users, playerIndex INT NOT NULL, ready BOOLEAN NOT NULL DEFAULT false, UNIQUE (game, userID), game_finished BOOLEAN NOT NULL DEFAULT FALSE, is_winner BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 COMMIT;

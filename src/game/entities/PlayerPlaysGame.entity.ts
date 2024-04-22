@@ -8,8 +8,9 @@ import {
 import { User } from 'users/entities/user.entity';
 
 export enum BotType {
-  PLAYER = 'player',
   WEAK_BOT = 'weak_bot',
+  MEDIUM_BOT = 'medium_bot',
+  STRONG_BOT = 'strong_bot',
 }
 
 @Entity({
@@ -19,8 +20,14 @@ export class PlayerPlaysGame {
   @PrimaryGeneratedColumn()
   id: string;
 
-  @Column({ name: 'bot_type' })
-  botType: BotType;
+  @Column({
+    name: 'bot_type',
+    type: 'enum',
+    enum: BotType,
+    nullable: true,
+    default: null,
+  })
+  botType: BotType | null;
 
   @Column({ name: 'game' })
   gameID: string;
@@ -39,4 +46,10 @@ export class PlayerPlaysGame {
 
   @Column({ type: 'boolean' })
   ready: boolean;
+
+  @Column({ name: 'is_winner', default: false })
+  isWinner: boolean;
+
+  @Column({ name: 'game_finished', default: false })
+  gameFinished: boolean;
 }

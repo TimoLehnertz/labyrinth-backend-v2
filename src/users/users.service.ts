@@ -52,6 +52,21 @@ export class UsersService {
     return this.usersRepository.find();
   }
 
+  async userFinishedGame(userID: string, isWinner: boolean) {
+    const user = await this.usersRepository.findOneBy({ id: userID });
+    if (user === null) {
+      throw new Error("User doesn't exist");
+    }
+    if (isWinner) {
+      user.gamesWon++;
+    } else {
+      user.gamesLost++;
+    }
+
+    console.log();
+    await this.usersRepository.update({ id: userID }, user);
+  }
+
   async register(registerUserDto: RegisterDto) {
     if (await this.emailExists(registerUserDto.email)) {
       throw new BadRequestException(RegisterError.emailTaken);
