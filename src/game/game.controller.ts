@@ -121,29 +121,15 @@ export class GameController {
   }
 
   @Get('')
-  @UseGuards(AuthGuard)
   @ApiBearerAuth()
   @ApiBadRequestResponse({ type: GetErrorResponse })
-  async findOne(
-    @Req() request: any,
-    @Query('gameID', ParseUUIDPipe) gameID: string,
-  ): Promise<Game> {
+  async findOne(@Query('gameID', ParseUUIDPipe) gameID: string): Promise<Game> {
     const game = await this.gameService.findOne(gameID);
     if (game === null) {
       throw new BadRequestException('game does not exist');
     }
     return game;
   }
-
-  // @Get('gamePlayer')
-  // @UseGuards(AuthGuard)
-  // @ApiBearerAuth()
-  // async findGamePlayer(
-  //   @Req() request: any,
-  //   @Query('gameID', ParseUUIDPipe) gameID: string,
-  // ): Promise<PlayerPlaysGame | null> {
-  //   return this.gameService.findGamePlayer(request.user.id, gameID);
-  // }
 
   @Put('/')
   @UseGuards(AuthGuard)
@@ -173,7 +159,6 @@ export class GameController {
   }
 
   @Get('players')
-  @UseGuards(AuthGuard)
   @ApiBearerAuth()
   async findPlayers(
     @Query('gameID', ParseUUIDPipe) gameID: string,

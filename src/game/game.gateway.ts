@@ -5,8 +5,7 @@ import {
   ConnectedSocket,
   WsException,
 } from '@nestjs/websockets';
-import { ParseUUIDPipe, UseGuards } from '@nestjs/common';
-import { WsAuthGuard } from 'auth/ws-auth.guard';
+import { ParseUUIDPipe } from '@nestjs/common';
 import { Socket } from 'socket.io';
 import { Game } from './entities/game.entity';
 import { GameSubscriber } from './game.subscriber';
@@ -27,7 +26,6 @@ export class GameGateway {
   ) {}
 
   @SubscribeMessage('getGame')
-  @UseGuards(WsAuthGuard)
   public async handleGetGame(
     @MessageBody(ParseUUIDPipe) gameID: string,
     @ConnectedSocket() client: Socket,
@@ -45,7 +43,6 @@ export class GameGateway {
   }
 
   @SubscribeMessage('getPlayers')
-  @UseGuards(WsAuthGuard)
   public async handleGetPlayers(
     @MessageBody(ParseUUIDPipe) gameID: string,
     @ConnectedSocket() client: Socket,

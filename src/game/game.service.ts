@@ -55,6 +55,7 @@ export enum UpdateGameError {
   INVALID_SETUP = 'invalid setup',
   NO_PERMISSION = 'no permission',
   GAME_ALREADY_STARTED = 'game has already started',
+  GAME_INVALID_PLAYER_COUNT = 'cant reduce player count',
 }
 
 export enum RemoveGamePlayerError {
@@ -141,6 +142,12 @@ export class GameService {
     game.gameState = LabyrinthGame.buildFromSetup(gameSetup).stringify();
     game.started = true;
     await this.gameRepository.update({ id: game.id }, game);
+    const firstPlayer = await this.findGamePlayerToMove(gameID);
+    if (firstPlayer !== null && firstPlayer.botType !== null) {
+      setTimeout(() => {
+        this.playBot(firstPlayer, gameID);
+      }, 3000);
+    }
   }
 
   findGamePlayers(gameID: string): Promise<PlayerPlaysGame[]> {
@@ -239,6 +246,7 @@ export class GameService {
     }
     await this.playerPlaysGameRepository.remove(removePlayer);
     // fix player indices
+    let allPlayersReady = true;
     const players = await this.findGamePlayers(gameID);
     for (let i = 0; i < players.length; i++) {
       const player = players[i];
@@ -246,6 +254,12 @@ export class GameService {
         player.playerIndex = i;
         await this.playerPlaysGameRepository.update({ id: player.id }, player);
       }
+      if (!player.ready) {
+        allPlayersReady = false;
+      }
+    }
+    if (allPlayersReady && players.length >= 2) {
+      await this.startGame(gameID);
     }
   }
 
@@ -271,14 +285,16 @@ export class GameService {
     const players = await this.playerPlaysGameRepository.findBy({
       userID,
     });
-    const games: Game[] = [];
+    const games: Game[] = await this.gameRepository.findBy({
+      ownerUserID: userID,
+    });
     for (const player of players) {
       const game = await this.findOne(player.gameID);
-      if (game !== null) {
+      if (game !== null && game.ownerUserID !== userID) {
         games.push(game);
       }
     }
-    return games;
+    return games.sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
   }
 
   async addUserToGame(userID: string, gameID: string) {
@@ -421,7 +437,7 @@ export class GameService {
     gameID: string,
     move: MoveDto | Move,
     userID: string | null,
-    botDelay: number = 3000,
+    botDelay: number = 500,
   ) {
     if (!(move instanceof Move)) {
       move = GameService.moveFromDto(move);
@@ -452,7 +468,7 @@ export class GameService {
     try {
       game.move(move);
     } catch (e) {
-      console.log('invalid move', e, move);
+      console.log('invalid move', e);
       throw new BadRequestException(MoveError.INVALID_MOVE);
     }
     const winnerIndex = game.gameState.getWinnerIndex();
@@ -462,11 +478,10 @@ export class GameService {
         gameID,
       });
       for (const gamePlayer of gamePlayers) {
-        if (gamePlayer.userID === null) {
-          continue;
-        }
         const isWinner = gamePlayer.playerIndex === winnerIndex;
-        await this.usersService.userFinishedGame(gamePlayer.userID, isWinner);
+        if (gamePlayer.userID !== null) {
+          await this.usersService.userFinishedGame(gamePlayer.userID, isWinner);
+        }
         gamePlayer.gameFinished = true;
         gamePlayer.isWinner = isWinner;
         await this.playerPlaysGameRepository.update(
@@ -547,16 +562,6 @@ export class GameService {
     });
   }
 
-  // findGamePlayer(
-  //   userID: string,
-  //   gameID: string,
-  // ): Promise<PlayerPlaysGame | null> {
-  //   return this.playerPlaysGameRepository.findOneBy({
-  //     gameID,
-  //     userID,
-  //   });
-  // }
-
   async update(userID: string, updateGameDto: UpdateGameDto) {
     const game = await this.findOne(updateGameDto.id);
     if (game === null) {
@@ -568,7 +573,15 @@ export class GameService {
     if (game.started) {
       throw new BadRequestException(UpdateGameError.GAME_ALREADY_STARTED);
     }
-    game.gameSetup = JSON.stringify(this.gameSetupByDto(updateGameDto));
+    const playerCount = await this.playerPlaysGameRepository.countBy({
+      gameID: game.id,
+    });
+    const newSetup = this.gameSetupByDto(updateGameDto);
+    if (playerCount > newSetup.playerCount) {
+      throw new BadRequestException(UpdateGameError.GAME_INVALID_PLAYER_COUNT);
+    }
+
+    game.gameSetup = JSON.stringify(newSetup);
     game.visibility = updateGameDto.visibility;
     if (
       updateGameDto.ownerID !== undefined &&
