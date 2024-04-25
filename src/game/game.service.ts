@@ -1,7 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateGameDto } from './dto/create-game.dto';
 import {
-  Board,
   BoardPosition,
   buildMoveGenerator,
   GameSetup,
