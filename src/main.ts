@@ -8,7 +8,7 @@ import { AsyncApiDocumentBuilder, AsyncApiModule } from 'nestjs-asyncapi';
 
 export interface EnvironmentVariables {
   PORT: number;
-  FRONT_END: string;
+  CORS: string;
   DATABASE_HOST: string;
   DATABASE_PORT: string;
   DATABASE_USER: string;
@@ -20,8 +20,12 @@ export interface EnvironmentVariables {
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService<EnvironmentVariables>);
+  const allowedCors = config
+    .getOrThrow('CORS')
+    .split(',')
+    .map((s: string) => s.trim());
   app.enableCors({
-    origin: [config.getOrThrow('FRONT_END')],
+    origin: allowedCors,
   });
   app.useGlobalPipes(new ValidationPipe());
 
