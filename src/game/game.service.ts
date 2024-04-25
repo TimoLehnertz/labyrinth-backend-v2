@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateGameDto } from './dto/create-game.dto';
 import {
+  Board,
   BoardPosition,
   buildMoveGenerator,
   GameSetup,
@@ -8,6 +9,7 @@ import {
   manhattanEvaluator,
   Move,
   MoveGenerator,
+  printBoard,
   ShiftPosition,
   Treasure,
 } from 'labyrinth-game-logic';
@@ -469,6 +471,14 @@ export class GameService {
       game.move(move);
     } catch (e) {
       console.log('invalid move', e);
+      console.log(move);
+      const newBoard = game.gameState.board
+        .setShiftPosition(move.toShiftPosition)
+        .rotateLooseTile(move.rotateBeforeShift)
+        .insertLooseTile();
+      printBoard(newBoard);
+      console.log(newBoard.getTile(new BoardPosition(1, 0)).rotation);
+      console.log(game.gameState.board.looseTile.rotation);
       throw new BadRequestException(MoveError.INVALID_MOVE);
     }
     const winnerIndex = game.gameState.getWinnerIndex();
