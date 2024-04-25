@@ -30,6 +30,7 @@ export class GameGateway {
     @MessageBody(ParseUUIDPipe) gameID: string,
     @ConnectedSocket() client: Socket,
   ) {
+    console.log('handleGetGame');
     try {
       this.gameSubscriber.manageClient(client, {
         filter: (game: Game) => game.id === gameID,
@@ -47,6 +48,7 @@ export class GameGateway {
     @MessageBody(ParseUUIDPipe) gameID: string,
     @ConnectedSocket() client: Socket,
   ) {
+    console.log('handleGetPlayers');
     try {
       this.playerPlaysGameSubscriber.manageClient(client, {
         filter: (playerPlaysGame: PlayerPlaysGame) =>

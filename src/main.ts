@@ -8,13 +8,20 @@ import { AsyncApiDocumentBuilder, AsyncApiModule } from 'nestjs-asyncapi';
 
 export interface EnvironmentVariables {
   PORT: number;
+  FRONT_END: string;
+  DATABASE_HOST: string;
+  DATABASE_PORT: string;
+  DATABASE_USER: string;
+  DATABASE_PASSWORD: string;
+  DATABASE_SCHEMA: string;
+  AUTH_SECRET: string;
 }
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const config = app.get(ConfigService<EnvironmentVariables>);
   app.enableCors({
-    origin: ['http://localhost:3001', 'http://localhost:3000'],
-    // allowedHeaders: 'localhost:3000',
+    origin: [config.getOrThrow('FRONT_END')],
   });
   app.useGlobalPipes(new ValidationPipe());
 
@@ -27,7 +34,6 @@ async function bootstrap() {
     .addTag('labyrinth')
     .addBearerAuth()
     .build();
-  // await SwaggerModule.loadPluginMetadata(metadata);
   const document = SwaggerModule.createDocument(app, documentBuilder);
   SwaggerModule.setup('api', app, document);
 
@@ -45,8 +51,6 @@ async function bootstrap() {
 
   const asyncapiDocument = AsyncApiModule.createDocument(app, asyncApiOptions);
   await AsyncApiModule.setup('asyncapi', app, asyncapiDocument);
-
-  const config = app.get(ConfigService<EnvironmentVariables>);
   await app.listen(config.getOrThrow<number>('PORT'));
 }
 bootstrap();

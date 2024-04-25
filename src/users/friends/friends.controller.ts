@@ -63,10 +63,6 @@ class IgnoreFriendRequestErrorResponse {
 @Controller('friends')
 @WebSocketGateway({
   namespace: 'friends',
-  cors: {
-    origin: 'http://localhost:3000',
-    credentials: true,
-  },
 })
 export class FriendsController {
   constructor(
@@ -99,6 +95,7 @@ export class FriendsController {
     @MessageBody() data: string,
     @ConnectedSocket() client: Socket,
   ) {
+    console.log('handleReceivedRequests');
     try {
       this.friendRequestSubscriber.manageClient(client, {
         filter: (friendRequest: FriendRequest) =>
