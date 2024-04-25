@@ -14,13 +14,14 @@ import { Game } from 'game/entities/game.entity';
 @Module({
   imports: [
     ConfigModule.forRoot({
-      envFilePath: '.env1',
+      envFilePath: '.env',
       isGlobal: true,
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
+        console.log(configService.get<number>('DATABASE_PORT', 5433));
         return {
           type: 'postgres',
           host: configService.get<string>('DATABASE_HOST', 'localhost'),
