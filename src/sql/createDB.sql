@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS chat_message (
 );
 
 CREATE TABLE IF NOT EXISTS game (
-    id UUID DEFAULT uuid_generate_v4 () PRIMARY KEY NOT NULL, visibility varchar(20) NOT NULL, start_time TIMESTAMP NOT NULL, game_state TEXT NOT NULL, game_setup TEXT NOT NULL, chat_room UUID REFERENCES chat_room, owner_user UUID NOT NULL REFERENCES users, finished BOOLEAN NOT NULL DEFAULT FALSE, started BOOLEAN NOT NULL DEFAULT FALSE
+    id UUID DEFAULT uuid_generate_v4 () PRIMARY KEY NOT NULL, visibility varchar(20) NOT NULL, start_time TIMESTAMP NOT NULL, game_state TEXT NOT NULL, game_setup TEXT NOT NULL, chat_room UUID REFERENCES chat_room, owner_user UUID NOT NULL REFERENCES users, finished BOOLEAN NOT NULL DEFAULT FALSE, started BOOLEAN NOT NULL DEFAULT FALSE, display_paths BOOLEAN NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS friend_request (

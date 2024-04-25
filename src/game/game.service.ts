@@ -125,6 +125,7 @@ export class GameService {
       visibility: createGameDto.visibility,
       finished: false,
       started: false,
+      displayPaths: createGameDto.displayPaths,
     });
     await this.gameRepository.insert(dbGame);
     await this.addUserToGame(ownerUser, dbGame.id);
@@ -406,10 +407,18 @@ export class GameService {
       throw new BadRequestException('game is finished');
     }
     let generator: MoveGenerator;
-    // @todo add other bots
     switch (gamePlayer.botType) {
+      case BotType.WEAK_BOT:
+        generator = buildMoveGenerator(manhattanEvaluator, 0.1);
+        break;
+      case BotType.MEDIUM_BOT:
+        generator = buildMoveGenerator(manhattanEvaluator, 0.3);
+        break;
+      case BotType.STRONG_BOT:
+        generator = buildMoveGenerator(manhattanEvaluator, 1);
+        break;
       default:
-        generator = buildMoveGenerator(manhattanEvaluator);
+        generator = buildMoveGenerator(manhattanEvaluator, 1);
         break;
     }
     const game = LabyrinthGame.buildFromString(dbGame.gameState);
@@ -592,6 +601,7 @@ export class GameService {
 
     game.gameSetup = JSON.stringify(newSetup);
     game.visibility = updateGameDto.visibility;
+    game.displayPaths = updateGameDto.displayPaths;
     if (
       updateGameDto.ownerID !== undefined &&
       game.ownerUserID !== updateGameDto.ownerID

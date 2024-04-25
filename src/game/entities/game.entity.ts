@@ -46,4 +46,7 @@ export class Game {
 
   @Column({ default: false })
   started: boolean;
+
+  @Column({ name: 'display_paths' })
+  displayPaths: boolean;
 }

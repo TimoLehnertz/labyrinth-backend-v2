@@ -63,7 +63,6 @@ export class UsersService {
       user.gamesLost++;
     }
 
-    console.log();
     await this.usersRepository.update({ id: userID }, user);
   }
 
