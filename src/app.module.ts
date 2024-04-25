@@ -21,7 +21,6 @@ import { Game } from 'game/entities/game.entity';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        console.log(configService.get<number>('DATABASE_PORT', 5433));
         return {
           type: 'postgres',
           host: configService.get<string>('DATABASE_HOST', 'localhost'),
