@@ -14,7 +14,7 @@ import { Game } from 'game/entities/game.entity';
 @Module({
   imports: [
     ConfigModule.forRoot({
-      envFilePath: '.env.development',
+      envFilePath: '.env1',
       isGlobal: true,
     }),
     TypeOrmModule.forRootAsync({
