@@ -63,6 +63,7 @@ class IgnoreFriendRequestErrorResponse {
 @Controller('friends')
 @WebSocketGateway({
   namespace: 'friends',
+  cors: true,
 })
 export class FriendsController {
   constructor(

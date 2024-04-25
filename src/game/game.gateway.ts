@@ -16,6 +16,7 @@ import { UsersService } from 'users/users.service';
 
 @WebSocketGateway({
   namespace: 'game',
+  cors: true,
 })
 export class GameGateway {
   constructor(
