@@ -52,4 +52,12 @@ export class PlayerPlaysGame {
 
   @Column({ name: 'game_finished', default: false })
   gameFinished: boolean;
+
+  @Column({
+    name: 'player_name',
+    default: null,
+    nullable: true,
+    type: 'varchar',
+  })
+  playerName: string | null;
 }

@@ -178,11 +178,17 @@ export class GameController {
   @ApiBearerAuth()
   @ApiBadRequestResponse({ type: JoinErrorResponse })
   @HttpCode(HttpStatus.OK)
+  @ApiQuery({
+    name: 'playerName',
+    type: String,
+    required: false,
+  })
   async join(
     @Req() request: any,
     @Query('gameID', ParseUUIDPipe) gameID: string,
+    @Query('playerName') playerName?: string,
   ) {
-    await this.gameService.addUserToGame(request.user.id, gameID);
+    await this.gameService.addUserToGame(request.user.id, gameID, playerName);
   }
 
   @Post('addBot')

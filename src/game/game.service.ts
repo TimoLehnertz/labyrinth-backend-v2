@@ -13,7 +13,7 @@ import {
   Treasure,
 } from 'labyrinth-game-logic';
 import { Game, GameVisibility } from './entities/game.entity';
-import { Not, Repository } from 'typeorm';
+import { IsNull, Not, Repository } from 'typeorm';
 import { BotType, PlayerPlaysGame } from './entities/PlayerPlaysGame.entity';
 import { UsersService } from 'users/users.service';
 import { FriendsService } from 'users/friends/friends.service';
@@ -174,20 +174,20 @@ export class GameService {
     if (game.started) {
       throw new BadRequestException(SetReadyError.GAME_ALREADY_STARTED);
     }
-    const playerPlaysGame = await this.playerPlaysGameRepository.findOne({
-      where: {
-        gameID,
-        userID,
-      },
+    const playersPlayGame = await this.playerPlaysGameRepository.findBy({
+      gameID,
+      userID,
     });
-    if (playerPlaysGame === null) {
+    if (playersPlayGame.length === 0) {
       return;
     }
-    playerPlaysGame.ready = ready;
-    await this.playerPlaysGameRepository.update(
-      { id: playerPlaysGame.id },
-      playerPlaysGame,
-    );
+    for (const playerPlaysGame of playersPlayGame) {
+      playerPlaysGame.ready = ready;
+      await this.playerPlaysGameRepository.update(
+        { id: playerPlaysGame.id },
+        playerPlaysGame,
+      );
+    }
     const players = await this.findGamePlayers(gameID);
     if (players.length < 2) {
       return; // not enough to start
@@ -293,13 +293,22 @@ export class GameService {
     for (const player of players) {
       const game = await this.findOne(player.gameID);
       if (game !== null && game.ownerUserID !== userID) {
-        games.push(game);
+        let found = false;
+        for (const addedGame of games) {
+          if (addedGame.id === game.id) {
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          games.push(game);
+        }
       }
     }
     return games.sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
   }
 
-  async addUserToGame(userID: string, gameID: string) {
+  async addUserToGame(userID: string, gameID: string, playerName?: string) {
     const user = await this.usersService.findById(userID);
     if (user === null) {
       throw new BadRequestException(AddUserToGameError.USER_DOES_NOT_EXIST);
@@ -316,6 +325,7 @@ export class GameService {
       where: {
         gameID,
         userID,
+        playerName: playerName ?? IsNull(),
       },
     });
     if (playerExists) {
@@ -333,6 +343,7 @@ export class GameService {
       playerIndex,
       ready: false,
       userID,
+      playerName: playerName ?? null,
     });
     await this.playerPlaysGameRepository.insert(userPlaysGame);
   }
