@@ -1,6 +1,6 @@
 import {
-  IsBoolean,
   IsEnum,
+  IsInt,
   IsNumber,
   IsString,
   Min,
@@ -52,6 +52,6 @@ export class CreateGameDto {
   @ValidateNested()
   gameSetup: GameSetupDto;
 
-  @IsBoolean()
-  displayPaths: boolean;
+  @IsInt()
+  gameMode: number;
 }

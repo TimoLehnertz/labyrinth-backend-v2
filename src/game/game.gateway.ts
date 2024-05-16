@@ -13,6 +13,7 @@ import { PlayerPlaysGameSubscriber } from './playerPlaysGame.subscriber';
 import { PlayerPlaysGame } from './entities/PlayerPlaysGame.entity';
 import { GameService } from './game.service';
 import { UsersService } from 'users/users.service';
+import { AsyncApiPub } from 'nestjs-asyncapi';
 
 @WebSocketGateway({
   namespace: 'game',
@@ -25,6 +26,23 @@ export class GameGateway {
     private readonly usersService: UsersService,
   ) {}
 
+  @AsyncApiPub({
+    channel: 'game/getGame',
+    message: [
+      {
+        name: 'add',
+        payload: Game,
+      },
+      {
+        name: 'remove',
+        payload: Game,
+      },
+      {
+        name: 'init',
+        payload: Game,
+      },
+    ],
+  })
   @SubscribeMessage('getGame')
   public async handleGetGame(
     @MessageBody(ParseUUIDPipe) gameID: string,
@@ -44,6 +62,23 @@ export class GameGateway {
   }
 
   @SubscribeMessage('getPlayers')
+  @AsyncApiPub({
+    channel: 'game/getPlayers',
+    message: [
+      {
+        name: 'add',
+        payload: Game,
+      },
+      {
+        name: 'remove',
+        payload: Game,
+      },
+      {
+        name: 'init',
+        payload: Game,
+      },
+    ],
+  })
   public async handleGetPlayers(
     @MessageBody(ParseUUIDPipe) gameID: string,
     @ConnectedSocket() client: Socket,

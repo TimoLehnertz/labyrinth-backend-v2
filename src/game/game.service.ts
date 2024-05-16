@@ -23,6 +23,7 @@ import { UpdateGameDto } from './dto/update-game.dto';
 
 export enum CreateGameError {
   INVALID_SETUP = 'invalid setup',
+  INVALID_GAME_MODE = 'invalid game mode',
 }
 
 export enum AddUserToGameError {
@@ -115,6 +116,9 @@ export class GameService {
     } catch (e) {
       throw new BadRequestException(CreateGameError.INVALID_SETUP);
     }
+    if (createGameDto.gameMode < 0 || createGameDto.gameMode > 2) {
+      throw new BadRequestException(CreateGameError.INVALID_GAME_MODE);
+    }
     const setup = this.gameSetupByDto(createGameDto);
 
     const dbGame = this.gameRepository.create({
@@ -125,7 +129,7 @@ export class GameService {
       visibility: createGameDto.visibility,
       finished: false,
       started: false,
-      displayPaths: createGameDto.displayPaths,
+      gameMode: createGameDto.gameMode,
     });
     await this.gameRepository.insert(dbGame);
     await this.addUserToGame(ownerUser, dbGame.id);
@@ -602,6 +606,9 @@ export class GameService {
     if (game.started) {
       throw new BadRequestException(UpdateGameError.GAME_ALREADY_STARTED);
     }
+    if (updateGameDto.gameMode < 0 || updateGameDto.gameMode > 2) {
+      throw new BadRequestException(CreateGameError.INVALID_GAME_MODE);
+    }
     const playerCount = await this.playerPlaysGameRepository.countBy({
       gameID: game.id,
     });
@@ -611,8 +618,7 @@ export class GameService {
     }
 
     game.gameSetup = JSON.stringify(newSetup);
-    game.visibility = updateGameDto.visibility;
-    game.displayPaths = updateGameDto.displayPaths;
+    game.gameMode = updateGameDto.gameMode;
     if (
       updateGameDto.ownerID !== undefined &&
       game.ownerUserID !== updateGameDto.ownerID

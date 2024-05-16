@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS game (
     owner_user UUID NOT NULL REFERENCES users,
     finished BOOLEAN NOT NULL DEFAULT FALSE,
     started BOOLEAN NOT NULL DEFAULT FALSE,
-    display_paths BOOLEAN NOT NULL
+    game_mode INT NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS friend_request (
