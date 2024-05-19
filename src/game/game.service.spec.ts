@@ -85,7 +85,7 @@ describe('GameService', () => {
     await gameService.create(max.id, {
       visibility: GameVisibility.PUBLIC,
       gameSetup: defaultSetup,
-      displayPaths: false,
+      gameMode: 0,
     });
     const games = await gameService.findByUser(max.id);
     expect(games.length).toBe(1);
@@ -110,7 +110,7 @@ describe('GameService', () => {
       await gameService.create(max.id, {
         visibility: GameVisibility.PUBLIC,
         gameSetup: defaultSetup,
-        displayPaths: false,
+        gameMode: 0,
       });
       fail('expected exception');
     } catch (e) {
@@ -123,7 +123,7 @@ describe('GameService', () => {
     await gameService.create(max.id, {
       visibility: GameVisibility.PUBLIC,
       gameSetup: defaultSetup,
-      displayPaths: false,
+      gameMode: 0,
     });
     let games = await gameService.findAvailableToJoin(tom.id);
     expect(games.length).toBe(1);
@@ -137,7 +137,7 @@ describe('GameService', () => {
     await gameService.create(max.id, {
       visibility: GameVisibility.FRIENDS,
       gameSetup: LabyrinthGame.getDefaultSetup(),
-      displayPaths: false,
+      gameMode: 0,
     });
     const games = await gameService.findAvailableToJoin(tom.id);
     expect(games.length).toBe(1);
@@ -147,7 +147,7 @@ describe('GameService', () => {
     await gameService.create(max.id, {
       visibility: GameVisibility.PUBLIC,
       gameSetup: LabyrinthGame.getDefaultSetup(),
-      displayPaths: false,
+      gameMode: 0,
     });
     const games = await gameService.findAvailableToJoin(tom.id);
     expect(games.length).toBe(1);
@@ -159,7 +159,7 @@ describe('GameService', () => {
     const dbGame = await gameService.create(max.id, {
       visibility: GameVisibility.PUBLIC,
       gameSetup: LabyrinthGame.getDefaultSetup(),
-      displayPaths: false,
+      gameMode: 0,
     });
     const gameSetup: GameSetup = JSON.parse(dbGame.gameSetup);
     expect(gameSetup.playerCount).toBe(4);
@@ -176,7 +176,7 @@ describe('GameService', () => {
     const game = await gameService.create(max.id, {
       visibility: GameVisibility.PUBLIC,
       gameSetup: LabyrinthGame.getDefaultSetup(),
-      displayPaths: false,
+      gameMode: 0,
     });
     await gameService.addUserToGame(tom.id, game.id);
     await gameService.setReady(max.id, game.id, true);
@@ -191,7 +191,7 @@ describe('GameService', () => {
     const game = await gameService.create(max.id, {
       visibility: GameVisibility.PUBLIC,
       gameSetup: LabyrinthGame.getDefaultSetup(),
-      displayPaths: false,
+      gameMode: 0,
     });
     await gameService.addBot(max.id, game.id, BotType.STRONG_BOT);
     const gamePlayers = await gameService.findGamePlayers(game.id);
@@ -204,7 +204,7 @@ describe('GameService', () => {
     let game: Game | null = await gameService.create(max.id, {
       visibility: GameVisibility.PUBLIC,
       gameSetup: LabyrinthGame.getDefaultSetup(),
-      displayPaths: false,
+      gameMode: 0,
     });
     await gameService.addBot(max.id, game.id, BotType.STRONG_BOT);
     await gameService.setReady(max.id, game.id, true);
@@ -222,13 +222,13 @@ describe('GameService', () => {
     const dbGame = await gameService.create(max.id, {
       visibility: GameVisibility.PUBLIC,
       gameSetup: LabyrinthGame.getDefaultSetup(),
-      displayPaths: false,
+      gameMode: 0,
     });
     await gameService.update(max.id, {
       id: dbGame.id,
       visibility: GameVisibility.PRIVATE,
       gameSetup: JSON.parse(dbGame.gameSetup),
-      displayPaths: false,
+      gameMode: 0,
     });
     const updatedGame = await gameService.findOne(dbGame.id);
     if (updatedGame === null) {
@@ -241,14 +241,14 @@ describe('GameService', () => {
     const dbGame = await gameService.create(max.id, {
       visibility: GameVisibility.PUBLIC,
       gameSetup: LabyrinthGame.getDefaultSetup(),
-      displayPaths: false,
+      gameMode: 0,
     });
     await gameService.update(max.id, {
       id: dbGame.id,
       visibility: GameVisibility.PUBLIC,
       ownerID: tom.id,
       gameSetup: JSON.parse(dbGame.gameSetup),
-      displayPaths: false,
+      gameMode: 0,
     });
     const updatedGame = await gameService.findOne(dbGame.id);
     if (updatedGame === null) {
@@ -262,7 +262,7 @@ describe('GameService', () => {
         visibility: GameVisibility.PUBLIC,
         ownerID: tom.id,
         gameSetup: JSON.parse(dbGame.gameSetup),
-        displayPaths: false,
+        gameMode: 0,
       });
       fail();
     } catch (e) {
@@ -274,7 +274,7 @@ describe('GameService', () => {
     const dbGame = await gameService.create(max.id, {
       visibility: GameVisibility.PUBLIC,
       gameSetup: LabyrinthGame.getDefaultSetup(),
-      displayPaths: false,
+      gameMode: 0,
     });
     try {
       await gameService.update(max.id, {
@@ -282,7 +282,7 @@ describe('GameService', () => {
         visibility: GameVisibility.PUBLIC,
         ownerID: tom.id,
         gameSetup: JSON.parse(dbGame.gameSetup),
-        displayPaths: false,
+        gameMode: 0,
       });
       fail();
     } catch (e) {
@@ -294,7 +294,7 @@ describe('GameService', () => {
     const dbGame = await gameService.create(max.id, {
       visibility: GameVisibility.PUBLIC,
       gameSetup: LabyrinthGame.getDefaultSetup(),
-      displayPaths: false,
+      gameMode: 0,
     });
     await gameService.addUserToGame(tom.id, dbGame.id);
     await gameService.setReady(max.id, dbGame.id, true);
@@ -305,7 +305,7 @@ describe('GameService', () => {
         visibility: GameVisibility.PUBLIC,
         ownerID: tom.id,
         gameSetup: JSON.parse(dbGame.gameSetup),
-        displayPaths: false,
+        gameMode: 0,
       });
       fail();
     } catch (e) {
@@ -317,7 +317,7 @@ describe('GameService', () => {
     const dbGame = await gameService.create(max.id, {
       visibility: GameVisibility.PUBLIC,
       gameSetup: LabyrinthGame.getDefaultSetup(),
-      displayPaths: false,
+      gameMode: 0,
     });
     try {
       await gameService.update(max.id, {
@@ -325,7 +325,7 @@ describe('GameService', () => {
         visibility: GameVisibility.PUBLIC,
         ownerID: dbGame.id, // invalid id
         gameSetup: JSON.parse(dbGame.gameSetup),
-        displayPaths: false,
+        gameMode: 0,
       });
       fail();
     } catch (e) {
@@ -337,7 +337,7 @@ describe('GameService', () => {
     const dbGame = await gameService.create(max.id, {
       visibility: GameVisibility.PUBLIC,
       gameSetup: LabyrinthGame.getDefaultSetup(),
-      displayPaths: false,
+      gameMode: 0,
     });
     const newSetup: GameSetupDto = {
       boardHeight: 9,
@@ -359,7 +359,7 @@ describe('GameService', () => {
       id: dbGame.id,
       visibility: GameVisibility.PUBLIC,
       gameSetup: newSetup,
-      displayPaths: false,
+      gameMode: 0,
     });
     const updatedGame = await gameService.findOne(dbGame.id);
     if (updatedGame === null) {
@@ -373,7 +373,7 @@ describe('GameService', () => {
     const dbGame = await gameService.create(max.id, {
       visibility: GameVisibility.PUBLIC,
       gameSetup: LabyrinthGame.getDefaultSetup(),
-      displayPaths: false,
+      gameMode: 0,
     });
     let gamePlayers = await gameService.findGamePlayers(dbGame.id);
     expect(gamePlayers.length).toBe(1);
@@ -387,7 +387,7 @@ describe('GameService', () => {
     const game = await gameService.create(max.id, {
       visibility: GameVisibility.PUBLIC,
       gameSetup: LabyrinthGame.getDefaultSetup(),
-      displayPaths: false,
+      gameMode: 0,
     });
     await gameService.addUserToGame(tom.id, game.id);
     await gameService.setReady(max.id, game.id, true);

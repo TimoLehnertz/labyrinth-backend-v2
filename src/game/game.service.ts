@@ -619,6 +619,7 @@ export class GameService {
 
     game.gameSetup = JSON.stringify(newSetup);
     game.gameMode = updateGameDto.gameMode;
+    game.visibility = updateGameDto.visibility;
     if (
       updateGameDto.ownerID !== undefined &&
       game.ownerUserID !== updateGameDto.ownerID
